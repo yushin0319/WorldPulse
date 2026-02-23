@@ -118,4 +118,50 @@ describe("DateNavigator", () => {
     await user.click(screen.getByText("今日"));
     expect(onChange).toHaveBeenCalledWith("2026-02-23");
   });
+
+  it("availableDatesが空配列の場合、前後ボタンが無効化される", () => {
+    render(
+      <DateNavigator
+        currentDate="2026-02-23"
+        availableDates={[]}
+        onDateChange={() => {}}
+      />
+    );
+    expect(screen.getByLabelText("前の日")).toBeDisabled();
+    expect(screen.getByLabelText("次の日")).toBeDisabled();
+  });
+
+  it("currentDateがavailableDatesに存在しない場合、前後ボタンが無効化される", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <DateNavigator
+        currentDate="2026-01-01"
+        availableDates={dates}
+        onDateChange={onChange}
+      />
+    );
+    // indexOf=-1 なので hasPrev=false, hasNext=false
+    expect(screen.getByLabelText("前の日")).toBeDisabled();
+    expect(screen.getByLabelText("次の日")).toBeDisabled();
+
+    // 今日ボタンは表示される（currentDateが最新日でないので）
+    expect(screen.getByText("今日")).toBeInTheDocument();
+    await user.click(screen.getByText("今日"));
+    expect(onChange).toHaveBeenCalledWith("2026-02-23");
+  });
+
+  it("availableDatesが1件のみの場合、前後ボタンが両方無効化される", () => {
+    render(
+      <DateNavigator
+        currentDate="2026-02-23"
+        availableDates={["2026-02-23"]}
+        onDateChange={() => {}}
+      />
+    );
+    expect(screen.getByLabelText("前の日")).toBeDisabled();
+    expect(screen.getByLabelText("次の日")).toBeDisabled();
+    // 今日なので今日ボタンは非表示
+    expect(screen.queryByText("今日")).not.toBeInTheDocument();
+  });
 });

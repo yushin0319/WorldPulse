@@ -121,4 +121,41 @@ describe("newsStore", () => {
       "2026-02-22",
     ]);
   });
+
+  it("fetchNewsByDate: エラー時にerrorをセットしisFetchingをfalseにする", async () => {
+    vi.mocked(getNewsByDate).mockRejectedValue(new Error("Server error"));
+
+    await useNewsStore.getState().fetchNewsByDate("2026-02-22");
+
+    const state = useNewsStore.getState();
+    expect(state.error).toBe("ニュースの取得に失敗しました。時間をおいて再試行してください。");
+    expect(state.isFetching).toBe(false);
+  });
+
+  it("fetchNewsByDate: isFetchingがtrueになりisLoadingはfalseのまま", async () => {
+    let resolveFn: (value: unknown) => void;
+    vi.mocked(getNewsByDate).mockImplementation(
+      () => new Promise((resolve) => { resolveFn = resolve; })
+    );
+
+    const promise = useNewsStore.getState().fetchNewsByDate("2026-02-22");
+    expect(useNewsStore.getState().isFetching).toBe(true);
+    expect(useNewsStore.getState().isLoading).toBe(false);
+
+    resolveFn!(mockTodayNews);
+    await promise;
+    expect(useNewsStore.getState().isFetching).toBe(false);
+  });
+
+  it("fetchAvailableDates: エラー時もavailableDatesは変更されない", async () => {
+    useNewsStore.setState({ availableDates: ["2026-02-23"] });
+    vi.mocked(getAvailableDates).mockRejectedValue(new Error("fail"));
+
+    await useNewsStore.getState().fetchAvailableDates();
+
+    // エラーが起きても既存の日付一覧は保持される
+    expect(useNewsStore.getState().availableDates).toEqual(["2026-02-23"]);
+    // エラーメッセージは設定されない（静かに失敗）
+    expect(useNewsStore.getState().error).toBeNull();
+  });
 });
