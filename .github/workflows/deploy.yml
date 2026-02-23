@@ -37,7 +37,7 @@ jobs:
         working-directory: frontend
         env:
           VITE_API_BASE_URL: https://worldpulse-api.yushin-fudo1986.workers.dev
-      - run: npx wrangler pages deploy dist --project-name=worldpulse
+      - run: npx wrangler pages deploy dist --project-name=worldpulse --commit-message="deploy ${{ github.sha }}"
         working-directory: frontend
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
