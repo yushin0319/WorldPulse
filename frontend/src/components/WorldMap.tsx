@@ -28,11 +28,13 @@ export default function WorldMap({
       onClick={handleBackgroundClick}
     >
       <ComposableMap
-        projection="geoMercator"
+        projection="geoNaturalEarth1"
         projectionConfig={{
-          scale: 130,
-          center: [0, 20],
+          scale: 160,
+          center: [10, 5],
         }}
+        width={900}
+        height={450}
         style={{ width: "100%", height: "100%" }}
       >
         <ZoomableGroup>
