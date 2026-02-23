@@ -1,7 +1,7 @@
 import type { RssArticle, GeminiSelectedArticle } from "../types";
 
 const GEMINI_API_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
 // Geminiに送るプロンプトを構築
 export function buildPrompt(articles: RssArticle[]): string {

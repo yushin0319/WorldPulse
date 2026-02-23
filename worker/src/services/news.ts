@@ -99,7 +99,7 @@ export async function saveDailyNews(
       item.country_code,
       item.lat,
       item.lng,
-      item.category,
+      item.category.toLowerCase(),
       original?.publishedAt ?? null
     );
   });

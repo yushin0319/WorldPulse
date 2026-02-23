@@ -15,6 +15,8 @@ app.use(
     origin: (origin, c) => {
       const allowed = c.env.CORS_ORIGIN;
       if (origin === allowed || allowed === "*") return origin;
+      // ローカル開発用
+      if (origin?.startsWith("http://localhost:")) return origin;
       return "";
     },
   })
@@ -25,6 +27,20 @@ app.route("/api/news", newsRoutes);
 
 app.get("/health", (c) => c.json({ status: "ok" }));
 app.get("/", (c) => c.json({ app: "WorldPulse API", status: "ok" }));
+
+// 手動トリガー用（Cronと同じ処理を同期実行）
+app.post("/api/trigger", async (c) => {
+  const articles = await fetchAndProcessNews();
+  if (articles.length === 0) {
+    return c.json({ error: "No articles fetched" }, 500);
+  }
+  const selected = await selectTopNews(articles, c.env.GEMINI_API_KEY);
+  if (selected.length === 0) {
+    return c.json({ error: "Gemini returned no results", totalFetched: articles.length }, 500);
+  }
+  await saveDailyNews(c.env.DB, articles, selected);
+  return c.json({ ok: true, totalFetched: articles.length, selected: selected.length });
+});
 
 export default {
   fetch: app.fetch,

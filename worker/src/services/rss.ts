@@ -5,8 +5,8 @@ import type { RssArticle } from "../types";
 const RSS_FEEDS = [
   { source: "BBC", url: "https://feeds.bbci.co.uk/news/world/rss.xml" },
   {
-    source: "Reuters",
-    url: "https://www.reutersagency.com/feed/?best-topics=world&post_type=best",
+    source: "The Guardian",
+    url: "https://www.theguardian.com/world/rss",
   },
   {
     source: "Al Jazeera",
@@ -18,8 +18,8 @@ const RSS_FEEDS = [
   },
   { source: "CNN", url: "http://rss.cnn.com/rss/edition_world.rss" },
   {
-    source: "AP News",
-    url: "https://rsshub.app/apnews/topics/world-news",
+    source: "DW",
+    url: "https://rss.dw.com/xml/rss-en-world",
   },
 ];
 
