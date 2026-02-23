@@ -8,6 +8,8 @@ declare module "react-simple-maps" {
       center?: [number, number];
       rotate?: [number, number, number];
     };
+    width?: number;
+    height?: number;
     style?: CSSProperties;
     children?: ReactNode;
   }
