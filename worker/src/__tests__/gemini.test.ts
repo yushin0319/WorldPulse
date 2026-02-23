@@ -58,7 +58,7 @@ describe("parseGeminiResponse", () => {
       },
     ]);
 
-    const result = parseGeminiResponse(response);
+    const result = parseGeminiResponse(response, 10);
     expect(result).toHaveLength(2);
     expect(result[0].country_code).toBe("JP");
     expect(result[0].title_ja).toBe("日本で大地震");
@@ -67,7 +67,7 @@ describe("parseGeminiResponse", () => {
 
   it("マークダウンコードブロックで囲まれたJSONもパースできる", () => {
     const response = '```json\n[{"index":0,"country_code":"UK","lat":51.5,"lng":-0.1,"title_ja":"英国ニュース","summary_ja":"テスト要約","category":"general"}]\n```';
-    const result = parseGeminiResponse(response);
+    const result = parseGeminiResponse(response, 10);
     expect(result).toHaveLength(1);
     expect(result[0].country_code).toBe("UK");
   });
@@ -82,16 +82,16 @@ describe("parseGeminiResponse", () => {
       summary_ja: `要約${i}`,
       category: "general",
     }));
-    const result = parseGeminiResponse(JSON.stringify(items));
+    const result = parseGeminiResponse(JSON.stringify(items), 15);
     expect(result).toHaveLength(10);
   });
 
   it("不正なJSONは空配列を返す", () => {
-    expect(parseGeminiResponse("not json")).toHaveLength(0);
+    expect(parseGeminiResponse("not json", 10)).toHaveLength(0);
   });
 
   it("配列でないJSONは空配列を返す", () => {
-    expect(parseGeminiResponse('{"key":"value"}')).toHaveLength(0);
+    expect(parseGeminiResponse('{"key":"value"}', 10)).toHaveLength(0);
   });
 
   it("必須フィールドが欠けたアイテムはフィルタされる", () => {
@@ -107,7 +107,7 @@ describe("parseGeminiResponse", () => {
       },
       { index: 1, country_code: "US" }, // 不完全
     ]);
-    const result = parseGeminiResponse(response);
+    const result = parseGeminiResponse(response, 10);
     expect(result).toHaveLength(1);
   });
 });

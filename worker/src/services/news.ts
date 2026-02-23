@@ -61,60 +61,92 @@ export async function getAvailableDates(
   return { dates: results.map((r) => r.fetch_date) };
 }
 
-// 日次ニュース保存
+// URLプロトコル検証（http/httpsのみ許可）
+function sanitizeUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") return url;
+    return "";
+  } catch {
+    return "";
+  }
+}
+
+// 日次ニュース保存（重複チェック + バッチ書込）
 export async function saveDailyNews(
   db: D1Database,
   allArticles: RssArticle[],
   selected: GeminiSelectedArticle[]
 ): Promise<void> {
   const today = new Date().toISOString().slice(0, 10);
+
+  // 既に同日のデータがあればスキップ
+  const existing = await db
+    .prepare("SELECT id FROM daily_news WHERE fetch_date = ?")
+    .bind(today)
+    .first();
+  if (existing) {
+    console.log(`Already processed ${today}, skipping`);
+    return;
+  }
+
   const dailyId = crypto.randomUUID();
 
-  // daily_news レコード作成
-  await db
-    .prepare(
-      "INSERT INTO daily_news (id, fetch_date, total_articles_fetched) VALUES (?, ?, ?)"
-    )
-    .bind(dailyId, today, allArticles.length)
-    .run();
+  // daily_news + news_articles を一括バッチで書込（アトミック）
+  const stmts: D1PreparedStatement[] = [];
 
-  // news_articles レコード作成
-  const stmt = db.prepare(
+  stmts.push(
+    db
+      .prepare(
+        "INSERT INTO daily_news (id, fetch_date, total_articles_fetched) VALUES (?, ?, ?)"
+      )
+      .bind(dailyId, today, allArticles.length)
+  );
+
+  const articleStmt = db.prepare(
     `INSERT INTO news_articles (id, daily_news_id, rank, source_name, source_url, original_title, original_snippet, title_ja, summary_ja, country_code, latitude, longitude, category, published_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
 
-  const batch = selected.map((item, i) => {
+  for (let i = 0; i < selected.length; i++) {
+    const item = selected[i];
     const original = allArticles[item.index];
-    return stmt.bind(
-      crypto.randomUUID(),
-      dailyId,
-      i + 1,
-      original?.source ?? "Unknown",
-      original?.url ?? "",
-      original?.title ?? "",
-      original?.snippet ?? "",
-      item.title_ja,
-      item.summary_ja,
-      item.country_code,
-      item.lat,
-      item.lng,
-      item.category.toLowerCase(),
-      original?.publishedAt ?? null
-    );
-  });
+    if (!original) continue;
 
-  await db.batch(batch);
+    stmts.push(
+      articleStmt.bind(
+        crypto.randomUUID(),
+        dailyId,
+        i + 1,
+        original.source,
+        sanitizeUrl(original.url),
+        original.title,
+        original.snippet,
+        item.title_ja,
+        item.summary_ja,
+        item.country_code,
+        item.lat,
+        item.lng,
+        item.category.toLowerCase(),
+        original.publishedAt ?? null
+      )
+    );
+  }
+
+  await db.batch(stmts);
 }
 
-// ヘルパー: daily_news_id で記事一覧取得
+// ヘルパー: daily_news_id で記事一覧取得（必要カラムのみ）
 async function getArticlesByDailyId(
   db: D1Database,
   dailyId: string
 ): Promise<NewsArticle[]> {
   const { results } = await db
     .prepare(
-      "SELECT * FROM news_articles WHERE daily_news_id = ? ORDER BY rank ASC"
+      `SELECT id, rank, source_name, source_url, original_title,
+              title_ja, summary_ja, country_code, latitude, longitude,
+              category, published_at
+       FROM news_articles WHERE daily_news_id = ? ORDER BY rank ASC`
     )
     .bind(dailyId)
     .all();

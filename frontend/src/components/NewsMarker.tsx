@@ -2,25 +2,16 @@ import { useMemo } from "react";
 import { Marker } from "react-leaflet";
 import L from "leaflet";
 import type { NewsArticle } from "../types/api";
-
-const CATEGORY_COLORS: Record<string, string> = {
-  politics: "#ef4444",
-  conflict: "#ef4444",
-  economy: "#f59e0b",
-  disaster: "#f97316",
-  health: "#22c55e",
-  environment: "#22c55e",
-  science: "#3b82f6",
-  tech: "#3b82f6",
-  culture: "#a855f7",
-  general: "#6b7280",
-};
+import { CATEGORY_HEX } from "../constants/categories";
 
 function getMarkerSize(rank: number): number {
   if (rank <= 3) return 8;
   if (rank <= 7) return 6;
   return 4;
 }
+
+// タッチターゲット最小サイズ（44px以上）
+const MIN_BOX_SIZE = 44;
 
 interface NewsMarkerProps {
   article: NewsArticle;
@@ -33,9 +24,9 @@ export default function NewsMarker({
   isSelected,
   onClick,
 }: NewsMarkerProps) {
-  const color = CATEGORY_COLORS[article.category] ?? CATEGORY_COLORS.general;
+  const color = CATEGORY_HEX[article.category] ?? CATEGORY_HEX.general;
   const size = getMarkerSize(article.rank);
-  const boxSize = size * 5;
+  const boxSize = Math.max(size * 5, MIN_BOX_SIZE);
 
   const icon = useMemo(
     () =>
@@ -82,6 +73,8 @@ export default function NewsMarker({
     <Marker
       position={[article.latitude, article.longitude]}
       icon={icon}
+      title={article.titleJa}
+      alt={article.titleJa}
       eventHandlers={{ click: onClick }}
     />
   );

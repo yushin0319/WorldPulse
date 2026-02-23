@@ -20,7 +20,8 @@ export default function DateNavigator({
   if (!currentDate) return null;
 
   const currentIndex = availableDates.indexOf(currentDate);
-  const hasPrev = currentIndex < availableDates.length - 1;
+  // currentDateがavailableDatesにない場合は安全にフォールバック
+  const hasPrev = currentIndex >= 0 && currentIndex < availableDates.length - 1;
   const hasNext = currentIndex > 0;
   const isToday = currentIndex === 0 || currentDate === availableDates[0];
 
@@ -44,7 +45,7 @@ export default function DateNavigator({
       <button
         onClick={goPrev}
         disabled={!hasPrev}
-        className="rounded px-2 py-1 text-gray-400 hover:text-gray-200 disabled:opacity-30"
+        className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded text-gray-400 hover:text-gray-200 disabled:opacity-30"
         aria-label="前の日"
       >
         ←
@@ -66,7 +67,7 @@ export default function DateNavigator({
       <button
         onClick={goNext}
         disabled={!hasNext}
-        className="rounded px-2 py-1 text-gray-400 hover:text-gray-200 disabled:opacity-30"
+        className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded text-gray-400 hover:text-gray-200 disabled:opacity-30"
         aria-label="次の日"
       >
         →

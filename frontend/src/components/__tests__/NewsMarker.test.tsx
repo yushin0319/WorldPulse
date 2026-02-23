@@ -86,7 +86,7 @@ describe("NewsMarker", () => {
   });
 
   it("ランクに応じてアイコンサイズが変わる", () => {
-    // rank 1 → size 8 → boxSize 40
+    // rank 1 → size 8 → boxSize max(40, 44) = 44
     render(
       <NewsMarker
         article={mockArticle({ id: "r1", rank: 1 })}
@@ -95,9 +95,9 @@ describe("NewsMarker", () => {
       />
     );
     const call1 = vi.mocked(L.divIcon).mock.calls[0][0];
-    expect(call1?.iconSize).toEqual([40, 40]);
+    expect(call1?.iconSize).toEqual([44, 44]);
 
-    // rank 8 → size 4 → boxSize 20
+    // rank 8 → size 4 → boxSize max(20, 44) = 44
     render(
       <NewsMarker
         article={mockArticle({ id: "r8", rank: 8 })}
@@ -107,6 +107,6 @@ describe("NewsMarker", () => {
     );
     const lastIdx = vi.mocked(L.divIcon).mock.calls.length - 1;
     const call2 = vi.mocked(L.divIcon).mock.calls[lastIdx][0];
-    expect(call2?.iconSize).toEqual([20, 20]);
+    expect(call2?.iconSize).toEqual([44, 44]);
   });
 });

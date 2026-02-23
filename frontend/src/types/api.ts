@@ -1,3 +1,5 @@
+import type { NewsCategory } from "../constants/categories";
+
 export interface NewsArticle {
   id: string;
   rank: number;
@@ -9,7 +11,7 @@ export interface NewsArticle {
   countryCode: string;
   latitude: number;
   longitude: number;
-  category: string;
+  category: NewsCategory;
   publishedAt: string | null;
 }
 

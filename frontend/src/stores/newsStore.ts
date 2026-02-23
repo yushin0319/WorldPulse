@@ -9,6 +9,7 @@ interface NewsState {
   totalArticlesFetched: number;
   selectedArticleId: string | null;
   isLoading: boolean;
+  isFetching: boolean;
   error: string | null;
 
   fetchTodayNews: () => Promise<void>;
@@ -24,6 +25,7 @@ export const useNewsStore = create<NewsState>((set) => ({
   totalArticlesFetched: 0,
   selectedArticleId: null,
   isLoading: false,
+  isFetching: false,
   error: null,
 
   fetchTodayNews: async () => {
@@ -36,28 +38,29 @@ export const useNewsStore = create<NewsState>((set) => ({
         totalArticlesFetched: data.totalArticlesFetched,
         isLoading: false,
       });
-    } catch (e) {
+    } catch {
       set({
-        error: e instanceof Error ? e.message : "Unknown error",
+        error: "ニュースの取得に失敗しました。時間をおいて再試行してください。",
         isLoading: false,
       });
     }
   },
 
   fetchNewsByDate: async (date: string) => {
-    set({ isLoading: true, error: null, selectedArticleId: null });
+    // 日付変更時はisFetching（全画面スピナーではなくオーバーレイ）
+    set({ isFetching: true, error: null, selectedArticleId: null });
     try {
       const data = await getNewsByDate(date);
       set({
         articles: data.articles,
         fetchDate: data.fetchDate,
         totalArticlesFetched: data.totalArticlesFetched,
-        isLoading: false,
+        isFetching: false,
       });
-    } catch (e) {
+    } catch {
       set({
-        error: e instanceof Error ? e.message : "Unknown error",
-        isLoading: false,
+        error: "ニュースの取得に失敗しました。時間をおいて再試行してください。",
+        isFetching: false,
       });
     }
   },
@@ -66,8 +69,8 @@ export const useNewsStore = create<NewsState>((set) => ({
     try {
       const data = await getAvailableDates();
       set({ availableDates: data.dates });
-    } catch {
-      // 日付取得失敗は致命的でないのでエラー表示しない
+    } catch (e) {
+      console.warn("日付一覧の取得に失敗:", e);
     }
   },
 

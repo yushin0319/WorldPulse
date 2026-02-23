@@ -13,12 +13,12 @@ export default function NewsTooltip({ article, onClose }: NewsTooltipProps) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 10 }}
       transition={{ duration: 0.2 }}
-      className="w-80 rounded-lg border border-gray-700 bg-[#111827] p-4 shadow-xl"
+      className="relative w-80 rounded-lg border border-gray-700 bg-[#111827] p-4 shadow-xl"
       data-testid="news-tooltip"
     >
       <button
         onClick={onClose}
-        className="absolute right-2 top-2 text-gray-400 hover:text-gray-200"
+        className="absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded text-gray-400 hover:text-gray-200"
         aria-label="閉じる"
       >
         ✕

@@ -1,17 +1,5 @@
 import type { NewsArticle } from "../types/api";
-
-const CATEGORY_COLORS: Record<string, string> = {
-  politics: "bg-red-500",
-  conflict: "bg-red-500",
-  economy: "bg-amber-500",
-  disaster: "bg-orange-500",
-  health: "bg-green-500",
-  environment: "bg-green-500",
-  science: "bg-blue-500",
-  tech: "bg-blue-500",
-  culture: "bg-purple-500",
-  general: "bg-gray-500",
-};
+import { CATEGORY_BG } from "../constants/categories";
 
 interface NewsPanelProps {
   articles: NewsArticle[];
@@ -27,7 +15,7 @@ export default function NewsPanel({
   if (articles.length === 0) {
     return (
       <div
-        className="flex items-center justify-center p-4 text-sm text-gray-500"
+        className="flex h-full items-center justify-center p-4 text-sm text-gray-500"
         data-testid="news-panel-empty"
       >
         ニュースがありません
@@ -40,7 +28,7 @@ export default function NewsPanel({
       {articles.map((article) => {
         const isSelected = selectedArticleId === article.id;
         const colorClass =
-          CATEGORY_COLORS[article.category] ?? CATEGORY_COLORS.general;
+          CATEGORY_BG[article.category] ?? CATEGORY_BG.general;
 
         return (
           <button
@@ -48,6 +36,7 @@ export default function NewsPanel({
             onClick={() =>
               onSelectArticle(isSelected ? null : article.id)
             }
+            aria-pressed={isSelected}
             className={`w-full border-b border-gray-800 px-4 py-3 text-left transition-colors hover:bg-[#1a2035] ${
               isSelected ? "bg-[#1a2035]" : ""
             }`}
