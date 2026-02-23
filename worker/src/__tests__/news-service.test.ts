@@ -112,4 +112,82 @@ describe("D1 ニュースサービス", () => {
     const result = await getAvailableDates(env.DB);
     expect(result.dates).toHaveLength(0);
   });
+
+  it("saveDailyNews: 同日の重複保存はスキップされる", async () => {
+    await saveDailyNews(env.DB, mockArticles, mockSelected);
+    // 2回目の保存は重複チェックでスキップされる
+    await saveDailyNews(env.DB, mockArticles, mockSelected);
+
+    const result = await getTodayNews(env.DB);
+    expect(result).not.toBeNull();
+    // スキップされているので1日分のみ
+    expect(result!.articles).toHaveLength(2);
+  });
+
+  it("saveDailyNews: selectedのindexが範囲外の場合はスキップされる", async () => {
+    const outOfRangeSelected: GeminiSelectedArticle[] = [
+      {
+        index: 0,
+        country_code: "JP",
+        lat: 35.0,
+        lng: 139.0,
+        title_ja: "正常",
+        summary_ja: "テスト",
+        category: "general",
+      },
+      {
+        index: 99, // mockArticlesには2件しかないので範囲外
+        country_code: "US",
+        lat: 38.0,
+        lng: -77.0,
+        title_ja: "範囲外",
+        summary_ja: "テスト",
+        category: "general",
+      },
+    ];
+    await saveDailyNews(env.DB, mockArticles, outOfRangeSelected);
+
+    const result = await getTodayNews(env.DB);
+    expect(result).not.toBeNull();
+    // index=99の記事はスキップされ1件のみ
+    expect(result!.articles).toHaveLength(1);
+    expect(result!.articles[0].titleJa).toBe("正常");
+  });
+
+  it("saveDailyNews: 不正なURLは空文字列にサニタイズされる", async () => {
+    const articlesWithBadUrl: RssArticle[] = [
+      {
+        title: "Bad URL",
+        snippet: "Test",
+        url: "javascript:alert(1)",
+        source: "Test",
+        publishedAt: null,
+      },
+    ];
+    const selected: GeminiSelectedArticle[] = [
+      {
+        index: 0,
+        country_code: "JP",
+        lat: 35.0,
+        lng: 139.0,
+        title_ja: "テスト",
+        summary_ja: "テスト",
+        category: "general",
+      },
+    ];
+    await saveDailyNews(env.DB, articlesWithBadUrl, selected);
+
+    const result = await getTodayNews(env.DB);
+    expect(result).not.toBeNull();
+    expect(result!.articles[0].sourceUrl).toBe("");
+  });
+
+  it("saveDailyNews: selected配列が空の場合も正常に動作する", async () => {
+    await saveDailyNews(env.DB, mockArticles, []);
+
+    const result = await getTodayNews(env.DB);
+    expect(result).not.toBeNull();
+    expect(result!.totalArticlesFetched).toBe(2);
+    expect(result!.articles).toHaveLength(0);
+  });
 });

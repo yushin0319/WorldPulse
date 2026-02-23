@@ -1,9 +1,11 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   stripHtml,
   truncateSnippet,
   deduplicateArticles,
   parseFeed,
+  fetchFeed,
+  fetchAndProcessNews,
 } from "../services/rss";
 import type { RssArticle } from "../types";
 
@@ -116,5 +118,69 @@ describe("parseFeed", () => {
 
   it("不正なXMLは空配列を返す", () => {
     expect(parseFeed("not xml", "Test")).toHaveLength(0);
+  });
+
+  it("タイトルやdescriptionがないitemはデフォルト値で処理する", () => {
+    const xml = `<?xml version="1.0"?>
+    <rss version="2.0">
+      <channel>
+        <item>
+          <link>http://example.com/nodata</link>
+        </item>
+      </channel>
+    </rss>`;
+    const articles = parseFeed(xml, "Test");
+    expect(articles).toHaveLength(1);
+    expect(articles[0].title).toBe("");
+    expect(articles[0].snippet).toBe("");
+  });
+});
+
+describe("fetchFeed", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("HTTPエラー時は空配列を返す", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: false, status: 500 })
+    );
+    const result = await fetchFeed("https://example.com/feed.xml", "Test");
+    expect(result).toHaveLength(0);
+  });
+
+  it("ネットワークエラー（fetch throw）時は空配列を返す", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new TypeError("Failed to fetch"))
+    );
+    const result = await fetchFeed("https://example.com/feed.xml", "Test");
+    expect(result).toHaveLength(0);
+  });
+
+  it("AbortError（タイムアウト）時は空配列を返す", async () => {
+    const abortError = new DOMException("The operation was aborted", "AbortError");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(abortError)
+    );
+    const result = await fetchFeed("https://example.com/feed.xml", "Test");
+    expect(result).toHaveLength(0);
+  });
+});
+
+describe("fetchAndProcessNews", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("全フィードが失敗した場合は空配列を返す", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new Error("Network error"))
+    );
+    const result = await fetchAndProcessNews();
+    expect(result).toHaveLength(0);
   });
 });

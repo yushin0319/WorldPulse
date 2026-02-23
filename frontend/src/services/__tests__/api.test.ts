@@ -53,4 +53,29 @@ describe("API client", () => {
 
     await expect(getTodayNews()).rejects.toThrow("API error: 404 Not Found");
   });
+
+  it("500エラー時もErrorをthrowする", async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: "Internal Server Error",
+    });
+
+    await expect(getTodayNews()).rejects.toThrow("API error: 500 Internal Server Error");
+  });
+
+  it("ネットワーク切断時（fetch throw）にErrorが伝播する", async () => {
+    mockFetch.mockRejectedValue(new TypeError("Failed to fetch"));
+
+    await expect(getTodayNews()).rejects.toThrow("Failed to fetch");
+  });
+
+  it("レスポンスがJSONでない場合にErrorが伝播する", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.reject(new SyntaxError("Unexpected token")),
+    });
+
+    await expect(getTodayNews()).rejects.toThrow("Unexpected token");
+  });
 });

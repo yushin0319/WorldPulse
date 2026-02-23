@@ -110,4 +110,108 @@ describe("parseGeminiResponse", () => {
     const result = parseGeminiResponse(response, 10);
     expect(result).toHaveLength(1);
   });
+
+  it("空文字列は空配列を返す", () => {
+    expect(parseGeminiResponse("", 10)).toHaveLength(0);
+  });
+
+  it("indexが範囲外のアイテムはフィルタされる", () => {
+    const response = JSON.stringify([
+      {
+        index: 0,
+        country_code: "JP",
+        lat: 35.0,
+        lng: 139.0,
+        title_ja: "範囲内",
+        summary_ja: "テスト",
+        category: "general",
+      },
+      {
+        index: 5,
+        country_code: "US",
+        lat: 38.0,
+        lng: -77.0,
+        title_ja: "範囲外",
+        summary_ja: "テスト",
+        category: "general",
+      },
+      {
+        index: -1,
+        country_code: "UK",
+        lat: 51.5,
+        lng: -0.1,
+        title_ja: "負のindex",
+        summary_ja: "テスト",
+        category: "general",
+      },
+    ]);
+    // articleCount=3 なので index=5 と index=-1 はフィルタされる
+    const result = parseGeminiResponse(response, 3);
+    expect(result).toHaveLength(1);
+    expect(result[0].title_ja).toBe("範囲内");
+  });
+
+  it("小数のindexはフィルタされる", () => {
+    const response = JSON.stringify([
+      {
+        index: 1.5,
+        country_code: "JP",
+        lat: 35.0,
+        lng: 139.0,
+        title_ja: "小数",
+        summary_ja: "テスト",
+        category: "general",
+      },
+    ]);
+    expect(parseGeminiResponse(response, 10)).toHaveLength(0);
+  });
+
+  it("無効なカテゴリはgeneralに正規化される", () => {
+    const response = JSON.stringify([
+      {
+        index: 0,
+        country_code: "JP",
+        lat: 35.0,
+        lng: 139.0,
+        title_ja: "テスト",
+        summary_ja: "テスト",
+        category: "invalid_category",
+      },
+    ]);
+    const result = parseGeminiResponse(response, 10);
+    expect(result).toHaveLength(1);
+    expect(result[0].category).toBe("general");
+  });
+
+  it("null要素が混在した配列でもクラッシュしない", () => {
+    const response = JSON.stringify([
+      null,
+      {
+        index: 0,
+        country_code: "JP",
+        lat: 35.0,
+        lng: 139.0,
+        title_ja: "正常",
+        summary_ja: "テスト",
+        category: "general",
+      },
+      undefined,
+    ]);
+    const result = parseGeminiResponse(response, 10);
+    expect(result).toHaveLength(1);
+  });
+
+  it("buildPromptは100件を超える記事を切り詰める", () => {
+    const articles: RssArticle[] = Array.from({ length: 120 }, (_, i) => ({
+      title: `Article ${i}`,
+      snippet: `Snippet ${i}`,
+      url: `http://example.com/${i}`,
+      source: "Test",
+      publishedAt: null,
+    }));
+    const prompt = buildPrompt(articles);
+    // [99]は含まれるが[100]は含まれない
+    expect(prompt).toContain("[99]");
+    expect(prompt).not.toContain("[100]");
+  });
 });
