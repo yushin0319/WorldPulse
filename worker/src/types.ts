@@ -47,15 +47,3 @@ export interface DailyNewsResponse {
 export interface AvailableDatesResponse {
   dates: string[];
 }
-
-export type NewsCategory =
-  | "politics"
-  | "economy"
-  | "conflict"
-  | "science"
-  | "disaster"
-  | "health"
-  | "environment"
-  | "tech"
-  | "culture"
-  | "general";
