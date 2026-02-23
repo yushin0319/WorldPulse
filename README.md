@@ -67,7 +67,8 @@ https://worldpulse.pages.dev/
 cd worker && npm install
 
 # Frontend
-cd frontend && npm install ```
+cd frontend && npm install
+```
 
 ### Dev Server
 
@@ -107,6 +108,7 @@ wrangler pages deploy dist --project-name=worldpulse
 
 ```bash
 wrangler secret put GEMINI_API_KEY
+wrangler secret put TRIGGER_SECRET
 ```
 
 ## API Endpoints
@@ -115,7 +117,8 @@ wrangler secret put GEMINI_API_KEY
 |--------|------|-------------|
 | GET | `/api/news/today` | 最新日のニュース10件 |
 | GET | `/api/news/:date` | 指定日のニュース (YYYY-MM-DD) |
-| GET | `/api/news/dates` | データ存在日一覧 (直近30日) |
+| GET | `/api/news/dates` | データ存在日一覧 |
+| POST | `/api/trigger` | 手動ニュース取得 (要認証) |
 | GET | `/health` | ヘルスチェック |
 
 ## Cost
