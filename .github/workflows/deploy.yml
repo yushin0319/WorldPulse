@@ -35,6 +35,8 @@ jobs:
         working-directory: frontend
       - run: npx vite build
         working-directory: frontend
+        env:
+          VITE_API_BASE_URL: https://worldpulse-api.yushin-fudo1986.workers.dev
       - run: npx wrangler pages deploy dist --project-name=worldpulse
         working-directory: frontend
         env:
