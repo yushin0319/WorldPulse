@@ -13,7 +13,7 @@ export default function NewsTooltip({ article, onClose }: NewsTooltipProps) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 10 }}
       transition={{ duration: 0.2 }}
-      className="absolute right-4 top-0 z-[1000] w-80 max-h-[calc(100%-1rem)] overflow-y-auto rounded-lg border border-gray-700 bg-[#111827] p-4 shadow-xl"
+      className="absolute right-4 top-4 z-[1000] w-80 max-h-[calc(100%-2rem)] overflow-y-auto rounded-lg border border-gray-700 bg-[#111827] p-4 shadow-xl"
       data-testid="news-tooltip"
     >
       <button
