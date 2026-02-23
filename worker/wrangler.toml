@@ -1,0 +1,14 @@
+name = "worldpulse-api"
+main = "src/index.ts"
+compatibility_date = "2026-02-01"
+
+[triggers]
+crons = ["0 22 * * *"]  # 22:00 UTC = 07:00 JST
+
+[[d1_databases]]
+binding = "DB"
+database_name = "worldpulse"
+database_id = "4434a125-2ad3-406b-a83c-710c33fbfa71"
+
+[vars]
+CORS_ORIGIN = "https://worldpulse.pages.dev"
