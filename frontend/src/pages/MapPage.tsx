@@ -92,7 +92,7 @@ export default function MapPage() {
           {/* ツールチップ: PCのみ、選択カードの上端に合わせて左に表示 */}
           {selectedArticle && (
             <div
-              className="absolute right-full top-0 z-[1000] mr-4 hidden lg:block"
+              className="absolute right-full top-0 z-[1000] mr-4 hidden max-h-[calc(100%-2rem)] overflow-y-auto lg:block"
               style={{ top: tooltipTop }}
             >
               <NewsTooltip
