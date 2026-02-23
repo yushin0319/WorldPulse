@@ -11,6 +11,7 @@ vi.mock("react-leaflet", () => ({
     <div data-testid="map-container">{children}</div>
   ),
   TileLayer: () => <div data-testid="tile-layer" />,
+  useMap: () => ({ flyTo: vi.fn(), getZoom: () => 2 }),
 }));
 
 // NewsMarker をモック
