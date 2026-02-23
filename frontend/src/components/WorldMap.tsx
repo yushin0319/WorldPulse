@@ -14,7 +14,7 @@ const TILE_ATTRIBUTION =
 // 南極・北極をトリミング（緯度 -60 〜 75）
 const MAX_BOUNDS: L.LatLngBoundsExpression = [
   [-60, -180],
-  [75, 180],
+  [68, 180],
 ];
 
 interface WorldMapProps {
@@ -23,7 +23,7 @@ interface WorldMapProps {
   onSelectArticle: (id: string | null) => void;
 }
 
-// 選択記事に地図をパンするコンポーネント
+// SPのみ: 選択記事に地図をパンする（PCは全体が見えるので不要）
 function FlyToSelected({
   articles,
   selectedArticleId,
@@ -34,6 +34,8 @@ function FlyToSelected({
   const map = useMap();
   useEffect(() => {
     if (!selectedArticleId) return;
+    // PC (lg: ≥1024px) ではflyToしない
+    if (window.innerWidth >= 1024) return;
     const article = articles.find((a) => a.id === selectedArticleId);
     if (article) {
       map.flyTo([article.latitude, article.longitude], map.getZoom(), {

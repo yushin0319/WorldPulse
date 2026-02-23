@@ -68,12 +68,14 @@ export default function MapPage() {
             selectedArticleId={selectedArticleId}
             onSelectArticle={selectArticle}
           />
-          {/* ツールチップ（地図上にオーバーレイ） */}
+          {/* ツールチップ: PCのみ表示（SPはニュースパネルで十分） */}
           {selectedArticle && (
-            <NewsTooltip
-              article={selectedArticle}
-              onClose={() => selectArticle(null)}
-            />
+            <div className="hidden lg:block">
+              <NewsTooltip
+                article={selectedArticle}
+                onClose={() => selectArticle(null)}
+              />
+            </div>
           )}
         </div>
 
