@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNewsStore } from "../stores/newsStore";
 import WorldMap from "../components/WorldMap";
 import NewsPanel from "../components/NewsPanel";
@@ -25,6 +25,23 @@ export default function MapPage() {
   }, [fetchTodayNews, fetchAvailableDates]);
 
   const selectedArticle = articles.find((a) => a.id === selectedArticleId);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [tooltipTop, setTooltipTop] = useState(0);
+
+  // 選択カードの位置を測定してツールチップの top を合わせる
+  const measureCardPosition = useCallback(() => {
+    if (!selectedArticleId || !panelRef.current) return;
+    const card = panelRef.current.querySelector(
+      `[data-testid="news-card-${selectedArticleId}"]`
+    ) as HTMLElement | null;
+    if (card) {
+      setTooltipTop(card.offsetTop - panelRef.current.scrollTop);
+    }
+  }, [selectedArticleId]);
+
+  useEffect(() => {
+    measureCardPosition();
+  }, [measureCardPosition]);
 
   if (isLoading) {
     return (
@@ -68,24 +85,33 @@ export default function MapPage() {
             selectedArticleId={selectedArticleId}
             onSelectArticle={selectArticle}
           />
-          {/* ツールチップ: PCのみ表示（SPはニュースパネルで十分） */}
+        </div>
+
+        {/* ニュースパネル: PC=右サイドバー / スマホ=下半分 */}
+        <div className="relative min-h-0 flex-1 border-t border-gray-800 lg:w-80 lg:flex-none lg:border-l lg:border-t-0">
+          {/* ツールチップ: PCのみ、選択カードの上端に合わせて左に表示 */}
           {selectedArticle && (
-            <div className="hidden lg:block">
+            <div
+              className="absolute right-full top-0 z-[1000] mr-4 hidden max-h-[calc(100%-2rem)] overflow-y-auto lg:block"
+              style={{ top: tooltipTop }}
+            >
               <NewsTooltip
                 article={selectedArticle}
                 onClose={() => selectArticle(null)}
               />
             </div>
           )}
-        </div>
-
-        {/* ニュースパネル: PC=右サイドバー / スマホ=下半分 */}
-        <div className="min-h-0 flex-1 overflow-y-auto border-t border-gray-800 lg:w-80 lg:flex-none lg:border-l lg:border-t-0">
-          <NewsPanel
-            articles={articles}
-            selectedArticleId={selectedArticleId}
-            onSelectArticle={selectArticle}
-          />
+          <div
+            ref={panelRef}
+            className="h-full overflow-y-auto"
+            onScroll={measureCardPosition}
+          >
+            <NewsPanel
+              articles={articles}
+              selectedArticleId={selectedArticleId}
+              onSelectArticle={selectArticle}
+            />
+          </div>
         </div>
       </div>
     </div>

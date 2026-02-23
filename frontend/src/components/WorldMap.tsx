@@ -23,6 +23,15 @@ interface WorldMapProps {
   onSelectArticle: (id: string | null) => void;
 }
 
+// 初期表示で地図をコンテナいっぱいに広げる
+function FitBounds() {
+  const map = useMap();
+  useEffect(() => {
+    map.fitBounds(MAX_BOUNDS);
+  }, [map]);
+  return null;
+}
+
 // SPのみ: 選択記事に地図をパンする（PCは全体が見えるので不要）
 function FlyToSelected({
   articles,
@@ -71,6 +80,7 @@ export default function WorldMap({
           noWrap
           bounds={MAX_BOUNDS}
         />
+        <FitBounds />
         <FlyToSelected
           articles={articles}
           selectedArticleId={selectedArticleId}
