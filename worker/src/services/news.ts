@@ -61,6 +61,13 @@ export async function getAvailableDates(
   return { dates: results.map((r) => r.fetch_date) };
 }
 
+// JST (UTC+9) の日付文字列を返す
+export function getJstDateString(now?: Date): string {
+  const d = now ?? new Date();
+  const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+  return jst.toISOString().slice(0, 10);
+}
+
 // URLプロトコル検証（http/httpsのみ許可）
 function sanitizeUrl(url: string): string {
   try {
@@ -78,7 +85,7 @@ export async function saveDailyNews(
   allArticles: RssArticle[],
   selected: GeminiSelectedArticle[]
 ): Promise<void> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getJstDateString();
 
   // 既に同日のデータがあればスキップ
   const existing = await db

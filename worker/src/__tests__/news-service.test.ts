@@ -12,6 +12,7 @@ import {
   getTodayNews,
   getNewsByDate,
   getAvailableDates,
+  getJstDateString,
 } from "../services/news";
 import type { RssArticle, GeminiSelectedArticle } from "../types";
 
@@ -60,6 +61,31 @@ const mockSelected: GeminiSelectedArticle[] = [
   },
 ];
 
+describe("getJstDateString", () => {
+  it("UTCの日付にJST (+9h) オフセットを加えた日付文字列を返す", () => {
+    // 22:00 UTC = 翌日07:00 JST → JSTでは翌日
+    const result = getJstDateString(new Date("2026-02-23T22:00:00Z"));
+    expect(result).toBe("2026-02-24");
+  });
+
+  it("UTC 14:59 (JST 23:59) はまだ同日", () => {
+    const result = getJstDateString(new Date("2026-02-23T14:59:00Z"));
+    expect(result).toBe("2026-02-23");
+  });
+
+  it("UTC 15:00 (JST 翌日00:00) は翌日になる", () => {
+    const result = getJstDateString(new Date("2026-02-23T15:00:00Z"));
+    expect(result).toBe("2026-02-24");
+  });
+
+  it("引数なしで現在時刻のJST日付を返す", () => {
+    const now = new Date();
+    const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+    const expected = jst.toISOString().slice(0, 10);
+    expect(getJstDateString()).toBe(expected);
+  });
+});
+
 describe("D1 ニュースサービス", () => {
   beforeEach(async () => {
     await initDb();
@@ -83,7 +109,7 @@ describe("D1 ニュースサービス", () => {
 
   it("getNewsByDate: 指定日のニュースを取得できる", async () => {
     await saveDailyNews(env.DB, mockArticles, mockSelected);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getJstDateString();
 
     const result = await getNewsByDate(env.DB, today);
     expect(result).not.toBeNull();
@@ -105,7 +131,7 @@ describe("D1 ニュースサービス", () => {
 
     const result = await getAvailableDates(env.DB);
     expect(result.dates).toHaveLength(1);
-    expect(result.dates[0]).toBe(new Date().toISOString().slice(0, 10));
+    expect(result.dates[0]).toBe(getJstDateString());
   });
 
   it("getAvailableDates: データがない場合は空配列を返す", async () => {

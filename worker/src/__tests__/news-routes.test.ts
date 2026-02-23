@@ -3,7 +3,7 @@ import { env } from "cloudflare:test";
 import { Hono } from "hono";
 import type { Env } from "../types";
 import { newsRoutes } from "../routes/news";
-import { saveDailyNews } from "../services/news";
+import { saveDailyNews, getJstDateString } from "../services/news";
 import type { RssArticle, GeminiSelectedArticle } from "../types";
 
 // テスト用Honoアプリ
@@ -113,7 +113,7 @@ describe("News API ルート", () => {
 
   it("GET /api/news/:date: 過去日にはmax-age=3600のCache-Controlが設定される", async () => {
     await saveDailyNews(env.DB, mockArticles, mockSelected);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getJstDateString();
 
     const res = await app.request(
       `/api/news/${today}`,
