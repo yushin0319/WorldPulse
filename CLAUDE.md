@@ -7,7 +7,7 @@
 - Backend: Hono on Cloudflare Workers
 - DB: Cloudflare D1 (SQLite)
 - Map: react-simple-maps
-- AI: Gemini 2.0 Flash (日次RSS選定+翻訳)
+- AI: Gemini 2.5 Flash (日次RSS選定+翻訳)
 
 ## 開発コマンド
 - Worker: `cd worker && npm run dev`
