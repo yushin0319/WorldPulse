@@ -9,22 +9,17 @@ vi.mock("../../services/api", () => ({
   getAvailableDates: vi.fn(),
 }));
 
-// react-simple-maps モック
-vi.mock("react-simple-maps", () => ({
-  ComposableMap: ({ children }: React.PropsWithChildren) => (
-    <svg data-testid="composable-map">{children}</svg>
+// react-leaflet モック
+vi.mock("react-leaflet", () => ({
+  MapContainer: ({ children }: React.PropsWithChildren) => (
+    <div data-testid="map-container">{children}</div>
   ),
-  ZoomableGroup: ({ children }: React.PropsWithChildren) => (
-    <g>{children}</g>
-  ),
-  Geographies: ({
-    children,
-  }: {
-    children: (args: { geographies: never[] }) => React.ReactNode;
-  }) => children({ geographies: [] }),
-  Geography: () => <path />,
-  Marker: ({ children }: React.PropsWithChildren) => <g>{children}</g>,
+  TileLayer: () => null,
+  Marker: () => null,
 }));
+
+// leaflet CSS モック
+vi.mock("leaflet/dist/leaflet.css", () => ({}));
 
 import { getTodayNews, getAvailableDates } from "../../services/api";
 import { useNewsStore } from "../../stores/newsStore";

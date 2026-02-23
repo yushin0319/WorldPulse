@@ -6,7 +6,7 @@
 - Frontend: React 19 + TypeScript + Vite + Tailwind CSS + Framer Motion
 - Backend: Hono on Cloudflare Workers
 - DB: Cloudflare D1 (SQLite)
-- Map: react-simple-maps
+- Map: react-leaflet + Leaflet (CartoDB Dark Matter tiles)
 - AI: Gemini 2.5 Flash (日次RSS選定+翻訳)
 
 ## 開発コマンド
