@@ -67,6 +67,7 @@ export default function WorldMap({
         zoom={2}
         minZoom={2}
         maxZoom={10}
+        zoomSnap={0}
         maxBounds={MAX_BOUNDS}
         maxBoundsViscosity={1.0}
         style={{ width: "100%", height: "100%", background: "#0d1220" }}
