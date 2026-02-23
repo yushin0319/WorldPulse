@@ -33,16 +33,21 @@ app.post("/api/trigger", async (c) => {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  const articles = await fetchAndProcessNews();
-  if (articles.length === 0) {
-    return c.json({ error: "No articles fetched" }, 500);
+  try {
+    const articles = await fetchAndProcessNews();
+    if (articles.length === 0) {
+      return c.json({ error: "No articles fetched" }, 500);
+    }
+    const selected = await selectTopNews(articles, c.env.GEMINI_API_KEY);
+    if (selected.length === 0) {
+      return c.json({ error: "Gemini returned no results", totalFetched: articles.length }, 500);
+    }
+    await saveDailyNews(c.env.DB, articles, selected);
+    return c.json({ ok: true, totalFetched: articles.length, selected: selected.length });
+  } catch (e) {
+    console.error("Trigger failed:", e);
+    return c.json({ error: "Internal server error" }, 500);
   }
-  const selected = await selectTopNews(articles, c.env.GEMINI_API_KEY);
-  if (selected.length === 0) {
-    return c.json({ error: "Gemini returned no results", totalFetched: articles.length }, 500);
-  }
-  await saveDailyNews(c.env.DB, articles, selected);
-  return c.json({ ok: true, totalFetched: articles.length, selected: selected.length });
 });
 
 export default {

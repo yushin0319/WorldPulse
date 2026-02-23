@@ -36,6 +36,14 @@ body {
   }
 }
 
+/* 動作軽減設定が有効な場合はアニメーションを無効化 */
+@media (prefers-reduced-motion: reduce) {
+  .news-marker-pulse {
+    animation: none;
+    opacity: 0.5;
+  }
+}
+
 /* Leaflet attribution を目立たなくする */
 .leaflet-control-attribution {
   background: rgba(10, 15, 26, 0.7) !important;

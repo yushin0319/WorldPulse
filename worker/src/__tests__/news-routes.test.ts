@@ -58,6 +58,19 @@ describe("News API ルート", () => {
     expect(body.articles[0].titleJa).toBe("テスト");
   });
 
+  it("GET /api/news/today: Cache-Controlヘッダーが設定される", async () => {
+    await saveDailyNews(env.DB, mockArticles, mockSelected);
+
+    const res = await app.request(
+      "/api/news/today",
+      {},
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+    );
+    expect(res.headers.get("Cache-Control")).toBe(
+      "public, max-age=300, stale-while-revalidate=3600"
+    );
+  });
+
   it("GET /api/news/today: データがない場合404を返す", async () => {
     const res = await app.request(
       "/api/news/today",
@@ -96,5 +109,17 @@ describe("News API ルート", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.dates).toHaveLength(1);
+  });
+
+  it("GET /api/news/:date: 過去日にはmax-age=3600のCache-Controlが設定される", async () => {
+    await saveDailyNews(env.DB, mockArticles, mockSelected);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const res = await app.request(
+      `/api/news/${today}`,
+      {},
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+    );
+    expect(res.headers.get("Cache-Control")).toBe("public, max-age=3600");
   });
 });
