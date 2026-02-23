@@ -2,6 +2,7 @@ export interface Env {
   DB: D1Database;
   GEMINI_API_KEY: string;
   CORS_ORIGIN: string;
+  TRIGGER_SECRET?: string;
 }
 
 export interface RssArticle {

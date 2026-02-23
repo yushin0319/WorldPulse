@@ -3,9 +3,13 @@ import type { RssArticle, GeminiSelectedArticle } from "../types";
 const GEMINI_API_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
+// Geminiに送る記事数の上限（トークン効率のため）
+const MAX_ARTICLES_FOR_PROMPT = 100;
+
 // Geminiに送るプロンプトを構築
 export function buildPrompt(articles: RssArticle[]): string {
-  const articleList = articles
+  const limited = articles.slice(0, MAX_ARTICLES_FOR_PROMPT);
+  const articleList = limited
     .map((a, i) => `[${i}] ${a.source} | ${a.title} | ${a.snippet}`)
     .join("\n");
 
@@ -35,14 +39,25 @@ ARTICLES:
 ${articleList}`;
 }
 
-// Geminiレスポンスをパース
-export function parseGeminiResponse(text: string): GeminiSelectedArticle[] {
-  // マークダウンコードブロックを除去
-  const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+// Geminiレスポンスをパース（indexバリデーション付き）
+export function parseGeminiResponse(
+  text: string,
+  articleCount: number
+): GeminiSelectedArticle[] {
+  // マークダウンコードブロックを除去（大文字・他形式も対応）
+  const cleaned = text
+    .replace(/```[a-zA-Z]*\n?/g, "")
+    .replace(/```\n?/g, "")
+    .trim();
 
   try {
     const parsed = JSON.parse(cleaned);
     if (!Array.isArray(parsed)) return [];
+
+    const VALID_CATEGORIES = new Set([
+      "politics", "economy", "conflict", "science", "disaster",
+      "health", "environment", "tech", "culture", "general",
+    ]);
 
     return parsed
       .filter(
@@ -55,8 +70,17 @@ export function parseGeminiResponse(text: string): GeminiSelectedArticle[] {
           "lng" in item &&
           "title_ja" in item &&
           "summary_ja" in item &&
-          "category" in item
+          "category" in item &&
+          // indexの型・範囲チェック
+          Number.isInteger((item as GeminiSelectedArticle).index) &&
+          (item as GeminiSelectedArticle).index >= 0 &&
+          (item as GeminiSelectedArticle).index < articleCount
       )
+      .map((item) => ({
+        ...item,
+        // categoryを正規化
+        category: VALID_CATEGORIES.has(item.category) ? item.category : "general",
+      }))
       .slice(0, 10);
   } catch {
     console.error("Failed to parse Gemini response:", text.slice(0, 200));
@@ -64,12 +88,13 @@ export function parseGeminiResponse(text: string): GeminiSelectedArticle[] {
   }
 }
 
-// Gemini API呼出
+// Gemini API呼出（エラー時は例外をスロー）
 export async function selectTopNews(
   articles: RssArticle[],
   apiKey: string
 ): Promise<GeminiSelectedArticle[]> {
-  const prompt = buildPrompt(articles);
+  const limited = articles.slice(0, MAX_ARTICLES_FOR_PROMPT);
+  const prompt = buildPrompt(limited);
 
   const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
     method: "POST",
@@ -85,8 +110,7 @@ export async function selectTopNews(
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error(`Gemini API error (${response.status}):`, errorText);
-    return [];
+    throw new Error(`Gemini API error (${response.status}): ${errorText.slice(0, 200)}`);
   }
 
   const data = (await response.json()) as {
@@ -96,5 +120,5 @@ export async function selectTopNews(
   };
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
-  return parseGeminiResponse(text);
+  return parseGeminiResponse(text, limited.length);
 }

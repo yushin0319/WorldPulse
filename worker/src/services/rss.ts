@@ -16,7 +16,7 @@ const RSS_FEEDS = [
     source: "NHK World",
     url: "https://www3.nhk.or.jp/rss/news/cat0.xml",
   },
-  { source: "CNN", url: "http://rss.cnn.com/rss/edition_world.rss" },
+  { source: "CNN", url: "https://rss.cnn.com/rss/edition_world.rss" },
   {
     source: "DW",
     url: "https://rss.dw.com/xml/rss-en-world",
@@ -60,9 +60,13 @@ export async function fetchFeed(
   source: string
 ): Promise<RssArticle[]> {
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
     const res = await fetch(feedUrl, {
       headers: { "User-Agent": "WorldPulse/1.0" },
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
     if (!res.ok) {
       console.warn(`Feed fetch failed: ${source} (${res.status})`);
       return [];

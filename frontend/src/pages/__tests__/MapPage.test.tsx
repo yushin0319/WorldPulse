@@ -51,6 +51,7 @@ describe("MapPage", () => {
       totalArticlesFetched: 0,
       selectedArticleId: null,
       isLoading: false,
+      isFetching: false,
       error: null,
     });
     vi.clearAllMocks();
@@ -95,7 +96,7 @@ describe("MapPage", () => {
     render(<MapPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("ネットワークエラー")).toBeInTheDocument();
+      expect(screen.getByText("ニュースの取得に失敗しました。時間をおいて再試行してください。")).toBeInTheDocument();
     });
   });
 

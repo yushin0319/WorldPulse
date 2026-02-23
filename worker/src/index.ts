@@ -8,15 +8,13 @@ import { saveDailyNews } from "./services/news";
 
 const app = new Hono<{ Bindings: Env }>();
 
-// CORS
+// CORS（本番ドメインのみ許可）
 app.use(
   "/api/*",
   cors({
     origin: (origin, c) => {
       const allowed = c.env.CORS_ORIGIN;
       if (origin === allowed || allowed === "*") return origin;
-      // ローカル開発用
-      if (origin?.startsWith("http://localhost:")) return origin;
       return "";
     },
   })
@@ -28,8 +26,13 @@ app.route("/api/news", newsRoutes);
 app.get("/health", (c) => c.json({ status: "ok" }));
 app.get("/", (c) => c.json({ app: "WorldPulse API", status: "ok" }));
 
-// 手動トリガー用（Cronと同じ処理を同期実行）
+// 手動トリガー用（認証必須）
 app.post("/api/trigger", async (c) => {
+  const secret = c.req.header("X-Trigger-Secret");
+  if (!c.env.TRIGGER_SECRET || secret !== c.env.TRIGGER_SECRET) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
   const articles = await fetchAndProcessNews();
   if (articles.length === 0) {
     return c.json({ error: "No articles fetched" }, 500);
@@ -52,25 +55,26 @@ export default {
   ): Promise<void> {
     ctx.waitUntil(
       (async () => {
-        // RSS取得
-        const articles = await fetchAndProcessNews();
-        if (articles.length === 0) {
-          console.log("No articles fetched, skipping");
-          return;
-        }
+        try {
+          const articles = await fetchAndProcessNews();
+          if (articles.length === 0) {
+            console.error("No articles fetched, skipping");
+            return;
+          }
 
-        // Gemini選定+翻訳
-        const selected = await selectTopNews(articles, env.GEMINI_API_KEY);
-        if (selected.length === 0) {
-          console.log("Gemini returned no results, skipping");
-          return;
-        }
+          const selected = await selectTopNews(articles, env.GEMINI_API_KEY);
+          if (selected.length === 0) {
+            console.error("Gemini returned no results, skipping");
+            return;
+          }
 
-        // D1保存
-        await saveDailyNews(env.DB, articles, selected);
-        console.log(
-          `Saved ${selected.length} articles from ${articles.length} total`
-        );
+          await saveDailyNews(env.DB, articles, selected);
+          console.log(
+            `Saved ${selected.length} articles from ${articles.length} total`
+          );
+        } catch (e) {
+          console.error("Scheduled job failed:", e);
+        }
       })()
     );
   },

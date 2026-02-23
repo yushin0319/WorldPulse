@@ -41,6 +41,7 @@ describe("newsStore", () => {
       totalArticlesFetched: 0,
       selectedArticleId: null,
       isLoading: false,
+      isFetching: false,
       error: null,
     });
     vi.clearAllMocks();
@@ -85,7 +86,7 @@ describe("newsStore", () => {
     await useNewsStore.getState().fetchTodayNews();
 
     const state = useNewsStore.getState();
-    expect(state.error).toBe("Network error");
+    expect(state.error).toBe("ニュースの取得に失敗しました。時間をおいて再試行してください。");
     expect(state.isLoading).toBe(false);
     expect(state.articles).toHaveLength(0);
   });
