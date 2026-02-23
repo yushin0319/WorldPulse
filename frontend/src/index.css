@@ -17,3 +17,31 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* Leaflet マーカーのパルスアニメーション */
+.news-marker-pulse {
+  opacity: 0.3;
+  animation: marker-pulse 2s infinite ease-in-out;
+}
+
+@keyframes marker-pulse {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+}
+
+/* Leaflet attribution を目立たなくする */
+.leaflet-control-attribution {
+  background: rgba(10, 15, 26, 0.7) !important;
+  color: #6b7280 !important;
+  font-size: 10px !important;
+}
+.leaflet-control-attribution a {
+  color: #9ca3af !important;
+}

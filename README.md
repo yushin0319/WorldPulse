@@ -27,7 +27,7 @@ https://worldpulse.pages.dev/
 | Frontend | React 19 + TypeScript + Vite |
 | Styling | Tailwind CSS v4 (dark theme) |
 | Animation | Framer Motion |
-| Map | react-simple-maps (Natural Earth 1 projection) |
+| Map | react-leaflet + Leaflet (CartoDB Dark Matter tiles) |
 | State | Zustand |
 | Backend | Hono on Cloudflare Workers |
 | Database | Cloudflare D1 (SQLite) |
@@ -67,8 +67,7 @@ https://worldpulse.pages.dev/
 cd worker && npm install
 
 # Frontend
-cd frontend && npm install --legacy-peer-deps
-```
+cd frontend && npm install ```
 
 ### Dev Server
 
