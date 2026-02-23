@@ -16,6 +16,7 @@ vi.mock("react-leaflet", () => ({
   ),
   TileLayer: () => null,
   Marker: () => null,
+  useMap: () => ({ flyTo: vi.fn(), getZoom: () => 2 }),
 }));
 
 // leaflet CSS モック
