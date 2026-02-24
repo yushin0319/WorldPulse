@@ -169,6 +169,44 @@ describe("newsStore", () => {
     expect(useNewsStore.getState().isFetching).toBe(false);
   });
 
+  it("fetchAvailableDates: fetchTodayNewsが先に完了していた場合、fetchDateを保持する", async () => {
+    // fetchTodayNewsが先に完了: fetchDate="2026-02-24", availableDates=["2026-02-24"]
+    useNewsStore.setState({
+      fetchDate: "2026-02-24",
+      availableDates: ["2026-02-24"],
+    });
+    // APIキャッシュが古く "2026-02-24" を含まない
+    vi.mocked(getAvailableDates).mockResolvedValue({
+      dates: ["2026-02-23", "2026-02-22"],
+    });
+
+    await useNewsStore.getState().fetchAvailableDates();
+
+    // fetchDateが先頭に追加され、失われない
+    expect(useNewsStore.getState().availableDates).toEqual([
+      "2026-02-24",
+      "2026-02-23",
+      "2026-02-22",
+    ]);
+  });
+
+  it("fetchAvailableDates: APIレスポンスにfetchDateが含まれる場合、重複追加しない", async () => {
+    useNewsStore.setState({
+      fetchDate: "2026-02-24",
+      availableDates: ["2026-02-24"],
+    });
+    vi.mocked(getAvailableDates).mockResolvedValue({
+      dates: ["2026-02-24", "2026-02-23"],
+    });
+
+    await useNewsStore.getState().fetchAvailableDates();
+
+    expect(useNewsStore.getState().availableDates).toEqual([
+      "2026-02-24",
+      "2026-02-23",
+    ]);
+  });
+
   it("fetchAvailableDates: エラー時もavailableDatesは変更されない", async () => {
     useNewsStore.setState({ availableDates: ["2026-02-23"] });
     vi.mocked(getAvailableDates).mockRejectedValue(new Error("fail"));
