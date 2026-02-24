@@ -1,10 +1,28 @@
+import { VALID_CATEGORIES } from "../types";
 import type { RssArticle, GeminiSelectedArticle, PreviousArticle } from "../types";
+
+// カテゴリの O(1) 判定用 Set（モジュールレベルで一度だけ生成）
+const VALID_CATEGORIES_SET = new Set<string>(VALID_CATEGORIES);
 
 const GEMINI_API_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
 // Geminiに送る記事数の上限（トークン効率のため）
 const MAX_ARTICLES_FOR_PROMPT = 100;
+
+// プロンプトインジェクション対策: title/snippetのサニタイズ
+export function sanitizeForPrompt(text: string): string {
+  return text
+    // 改行を空白に正規化
+    .replace(/[\r\n]+/g, " ")
+    // プロンプト制御キーワードを除去（大文字小文字無視）
+    .replace(/\b(RULES|OUTPUT|ARTICLES|PREVIOUSLY COVERED):/gi, "")
+    // 区切り線を除去
+    .replace(/---+/g, "")
+    // 先頭のインデックス偽装を除去（"[0] "、"[99] " 等）
+    .replace(/^\[\d+\]\s*/, "")
+    .trim();
+}
 
 // Geminiに送るプロンプトを構築
 export function buildPrompt(
@@ -13,7 +31,10 @@ export function buildPrompt(
 ): string {
   const limited = articles.slice(0, MAX_ARTICLES_FOR_PROMPT);
   const articleList = limited
-    .map((a, i) => `[${i}] ${a.source} | ${a.title} | ${a.snippet}`)
+    .map(
+      (a, i) =>
+        `[${i}] ${a.source} | ${sanitizeForPrompt(a.title)} | ${sanitizeForPrompt(a.snippet)}`
+    )
     .join("\n");
 
   // 過去記事の重複回避セクション
@@ -57,7 +78,7 @@ ARTICLES:
 ${articleList}`;
 }
 
-// Geminiレスポンスをパース（indexバリデーション付き）
+// Geminiレスポンスをパース（indexバリデーション + 型・範囲チェック付き）
 export function parseGeminiResponse(
   text: string,
   articleCount: number
@@ -72,32 +93,43 @@ export function parseGeminiResponse(
     const parsed = JSON.parse(cleaned);
     if (!Array.isArray(parsed)) return [];
 
-    const VALID_CATEGORIES = new Set([
-      "politics", "economy", "conflict", "science", "disaster",
-      "health", "environment", "tech", "culture", "general",
-    ]);
-
     return parsed
-      .filter(
-        (item: unknown): item is GeminiSelectedArticle =>
-          typeof item === "object" &&
-          item !== null &&
-          "index" in item &&
-          "country_code" in item &&
-          "lat" in item &&
-          "lng" in item &&
-          "title_ja" in item &&
-          "summary_ja" in item &&
-          "category" in item &&
-          // indexの型・範囲チェック
-          Number.isInteger((item as GeminiSelectedArticle).index) &&
-          (item as GeminiSelectedArticle).index >= 0 &&
-          (item as GeminiSelectedArticle).index < articleCount
-      )
-      .map((item) => ({
-        ...item,
-        // categoryを正規化
-        category: VALID_CATEGORIES.has(item.category) ? item.category : "general",
+      .filter((item: unknown): item is Record<string, unknown> => {
+        if (typeof item !== "object" || item === null) return false;
+        const obj = item as Record<string, unknown>;
+        return (
+          // index: 整数かつ有効範囲
+          Number.isInteger(obj.index) &&
+          (obj.index as number) >= 0 &&
+          (obj.index as number) < articleCount &&
+          // country_code: ISO 3166-1 alpha-2（大文字2文字のみ）
+          typeof obj.country_code === "string" &&
+          /^[A-Z]{2}$/.test(obj.country_code) &&
+          // lat: number かつ -90〜90
+          typeof obj.lat === "number" &&
+          (obj.lat as number) >= -90 &&
+          (obj.lat as number) <= 90 &&
+          // lng: number かつ -180〜180
+          typeof obj.lng === "number" &&
+          (obj.lng as number) >= -180 &&
+          (obj.lng as number) <= 180 &&
+          // title_ja, summary_ja, category: string
+          typeof obj.title_ja === "string" &&
+          typeof obj.summary_ja === "string" &&
+          typeof obj.category === "string"
+        );
+      })
+      .map((item): GeminiSelectedArticle => ({
+        index: item.index as number,
+        country_code: item.country_code as string,
+        lat: item.lat as number,
+        lng: item.lng as number,
+        title_ja: item.title_ja as string,
+        summary_ja: item.summary_ja as string,
+        // categoryを正規化（未知の値はgeneralに）
+        category: VALID_CATEGORIES_SET.has(item.category as string)
+          ? (item.category as string)
+          : "general",
       }))
       .slice(0, 10);
   } catch {
@@ -115,29 +147,42 @@ export async function selectTopNews(
   const limited = articles.slice(0, MAX_ARTICLES_FOR_PROMPT);
   const prompt = buildPrompt(limited, previousArticles);
 
-  const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.2,
+  // 30秒タイムアウト（rss.tsの10秒より長めに設定）
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+
+  try {
+    const response = await fetch(GEMINI_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // APIキーはURLパラメータではなくヘッダーで送信（ログへの漏洩防止）
+        "x-goog-api-key": apiKey,
       },
-    }),
-  });
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.2,
+        },
+      }),
+      signal: controller.signal,
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Gemini API error (${response.status}): ${errorText.slice(0, 200)}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Gemini API error (${response.status}): ${errorText.slice(0, 200)}`);
+    }
+
+    const data = (await response.json()) as {
+      candidates?: Array<{
+        content?: { parts?: Array<{ text?: string }> };
+      }>;
+    };
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+
+    return parseGeminiResponse(text, limited.length);
+  } finally {
+    clearTimeout(timeout);
   }
-
-  const data = (await response.json()) as {
-    candidates?: Array<{
-      content?: { parts?: Array<{ text?: string }> };
-    }>;
-  };
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-
-  return parseGeminiResponse(text, limited.length);
 }

@@ -106,8 +106,14 @@ export default function MapPage() {
 
       {/* エラー表示 */}
       {error && (
-        <div className="bg-red-900/50 px-4 py-2 text-center text-sm text-red-300">
-          {error}
+        <div className="flex flex-col items-center bg-red-900/50 px-4 py-2 text-center text-sm text-red-300">
+          <p>{error}</p>
+          <button
+            onClick={() => fetchDate ? fetchNewsByDate(fetchDate) : fetchTodayNews()}
+            className="mt-2 rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-500"
+          >
+            再読み込み
+          </button>
         </div>
       )}
 

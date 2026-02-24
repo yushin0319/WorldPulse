@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { env } from "cloudflare:test";
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import type { Env } from "../types";
 import { newsRoutes } from "../routes/news";
 import { saveDailyNews, getJstDateString } from "../services/news";
@@ -184,5 +185,137 @@ describe("News API ルート", () => {
       { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
     );
     expect(res.status).toBe(200);
+  });
+});
+
+describe("M4: CORS ワイルドカード除去", () => {
+  beforeEach(async () => {
+    await initDb();
+    await env.DB.exec("DELETE FROM news_articles");
+    await env.DB.exec("DELETE FROM daily_news");
+  });
+
+  it("CORS_ORIGIN='*' でも任意のオリジンを許可しない", async () => {
+    const corsApp = new Hono<{ Bindings: Env }>();
+    corsApp.use(
+      "/api/*",
+      cors({
+        origin: (origin, c) => {
+          const allowed = c.env.CORS_ORIGIN;
+          if (origin === allowed) return origin;
+          return "";
+        },
+      })
+    );
+    corsApp.route("/api/news", newsRoutes);
+
+    const res = await corsApp.request(
+      "/api/news/today",
+      { headers: { Origin: "https://evil.example.com" } },
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+    );
+    // CORS_ORIGIN="*" でも "https://evil.example.com" !== "*" なので許可されない
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBeNull();
+  });
+
+  it("CORS_ORIGIN が一致するオリジンは許可される", async () => {
+    const corsApp = new Hono<{ Bindings: Env }>();
+    corsApp.use(
+      "/api/*",
+      cors({
+        origin: (origin, c) => {
+          const allowed = c.env.CORS_ORIGIN;
+          if (origin === allowed) return origin;
+          return "";
+        },
+      })
+    );
+    corsApp.route("/api/news", newsRoutes);
+
+    await saveDailyNews(env.DB, mockArticles, mockSelected);
+    const res = await corsApp.request(
+      "/api/news/today",
+      { headers: { Origin: "https://worldpulse.pages.dev" } },
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "https://worldpulse.pages.dev" }
+    );
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("https://worldpulse.pages.dev");
+  });
+});
+
+describe("M12: Rate Limiting", () => {
+  beforeEach(async () => {
+    await initDb();
+    await env.DB.exec("DELETE FROM news_articles");
+    await env.DB.exec("DELETE FROM daily_news");
+  });
+
+  function createRateLimitApp() {
+    const localRateLimitMap = new Map<string, { count: number; resetAt: number }>();
+    const rlApp = new Hono<{ Bindings: Env }>();
+    rlApp.use("/api/*", async (c, next) => {
+      const ip = c.req.header("cf-connecting-ip") ?? "unknown";
+      const now = Date.now();
+      const entry = localRateLimitMap.get(ip);
+      if (entry && now < entry.resetAt) {
+        if (entry.count >= 60) {
+          return c.json({ error: "Too many requests" }, 429);
+        }
+        entry.count++;
+      } else {
+        localRateLimitMap.set(ip, { count: 1, resetAt: now + 60_000 });
+      }
+      await next();
+    });
+    rlApp.route("/api/news", newsRoutes);
+    return rlApp;
+  }
+
+  it("60回以内のリクエストは通過する", async () => {
+    const rlApp = createRateLimitApp();
+    const envBindings = { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" };
+    const reqInit = { headers: { "cf-connecting-ip": "10.0.0.1" } };
+
+    const res = await rlApp.request("/api/news/today", reqInit, envBindings);
+    expect(res.status).not.toBe(429);
+  });
+
+  it("61回目のリクエストは429 Too Many Requests を返す", async () => {
+    const rlApp = createRateLimitApp();
+    const envBindings = { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" };
+    const reqInit = { headers: { "cf-connecting-ip": "10.0.0.2" } };
+
+    // 60回送る（全て通過するはず）
+    for (let i = 0; i < 60; i++) {
+      const res = await rlApp.request("/api/news/today", reqInit, envBindings);
+      expect(res.status).not.toBe(429);
+    }
+
+    // 61回目は429
+    const res61 = await rlApp.request("/api/news/today", reqInit, envBindings);
+    expect(res61.status).toBe(429);
+    const body = (await res61.json()) as { error: string };
+    expect(body.error).toBe("Too many requests");
+  });
+
+  it("異なるIPは独立してカウントされる", async () => {
+    const rlApp = createRateLimitApp();
+    const envBindings = { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" };
+
+    // IP A で60回
+    for (let i = 0; i < 60; i++) {
+      await rlApp.request(
+        "/api/news/today",
+        { headers: { "cf-connecting-ip": "10.0.0.3" } },
+        envBindings
+      );
+    }
+
+    // IP B の1回目は通過する
+    const resB = await rlApp.request(
+      "/api/news/today",
+      { headers: { "cf-connecting-ip": "10.0.0.4" } },
+      envBindings
+    );
+    expect(resB.status).not.toBe(429);
   });
 });

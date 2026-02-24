@@ -1,3 +1,12 @@
+// カテゴリ定義（定義源: この配列が正）
+// frontend/src/constants/categories.ts の NewsCategory と同期すること
+export const VALID_CATEGORIES = [
+  "politics", "economy", "conflict", "science", "disaster",
+  "health", "environment", "tech", "culture", "general",
+] as const;
+
+export type NewsCategory = (typeof VALID_CATEGORIES)[number];
+
 export interface Env {
   DB: D1Database;
   GEMINI_API_KEY: string;
@@ -34,7 +43,7 @@ export interface NewsArticle {
   countryCode: string;
   latitude: number;
   longitude: number;
-  category: string;
+  category: NewsCategory;
   publishedAt: string | null;
 }
 

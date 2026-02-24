@@ -116,6 +116,38 @@ describe("NewsPanel", () => {
     expect(onSelect).toHaveBeenCalledWith(null);
   });
 
+  it("選択中の記事にsourceUrlリンクが表示される", () => {
+    const articles = [
+      mockArticle({ id: "1", sourceUrl: "https://bbc.com/article" }),
+    ];
+    render(
+      <NewsPanel
+        articles={articles}
+        selectedArticleId="1"
+        onSelectArticle={() => {}}
+      />
+    );
+    const link = screen.getByRole("link", { name: "元記事を読む →" });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute("href", "https://bbc.com/article");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("sourceUrlが空の場合に元記事リンクが表示されない", () => {
+    const articles = [
+      mockArticle({ id: "1", sourceUrl: "" }),
+    ];
+    render(
+      <NewsPanel
+        articles={articles}
+        selectedArticleId="1"
+        onSelectArticle={() => {}}
+      />
+    );
+    expect(screen.queryByRole("link", { name: "元記事を読む →" })).not.toBeInTheDocument();
+  });
+
   it("カテゴリに応じた色の丸を表示する", () => {
     const articles = [mockArticle({ id: "1", category: "politics" })];
     const { container } = render(

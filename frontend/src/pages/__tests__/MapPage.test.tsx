@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import MapPage from "../MapPage";
 
 // APIモック
@@ -37,7 +38,7 @@ vi.mock("../../components/CountryLayer", () => ({
 // leaflet CSS モック
 vi.mock("leaflet/dist/leaflet.css", () => ({}));
 
-import { getTodayNews, getAvailableDates, getNewsByCountry } from "../../services/api";
+import { getTodayNews, getNewsByDate, getAvailableDates, getNewsByCountry } from "../../services/api";
 import { useNewsStore } from "../../stores/newsStore";
 
 const mockArticles = [
@@ -161,6 +162,75 @@ describe("MapPage", () => {
       expect(getNewsByCountry).toHaveBeenCalledWith("DE");
       expect(screen.getByTestId("country-panel")).toBeInTheDocument();
     });
+  });
+
+  it("エラー時にリトライボタンが表示される", async () => {
+    vi.mocked(getTodayNews).mockRejectedValue(new Error("ネットワークエラー"));
+    vi.mocked(getAvailableDates).mockResolvedValue({ dates: [] });
+
+    render(<MapPage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "再読み込み" })).toBeInTheDocument();
+    });
+  });
+
+  it("リトライボタンクリックでfetchTodayNewsが呼ばれる（fetchDateなし）", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getTodayNews).mockRejectedValue(new Error("ネットワークエラー"));
+    vi.mocked(getAvailableDates).mockResolvedValue({ dates: [] });
+
+    render(<MapPage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "再読み込み" })).toBeInTheDocument();
+    });
+
+    vi.mocked(getTodayNews).mockResolvedValue({
+      fetchDate: "2026-02-24",
+      totalArticlesFetched: 0,
+      articles: [],
+    });
+
+    await user.click(screen.getByRole("button", { name: "再読み込み" }));
+
+    // 初回mount + リトライの計2回呼ばれる
+    expect(getTodayNews).toHaveBeenCalledTimes(2);
+  });
+
+  it("リトライボタンクリックでfetchNewsByDateが呼ばれる（fetchDateあり）", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getTodayNews).mockResolvedValue({
+      fetchDate: "2026-02-23",
+      totalArticlesFetched: 50,
+      articles: mockArticles,
+    });
+    vi.mocked(getAvailableDates).mockResolvedValue({ dates: ["2026-02-23"] });
+
+    render(<MapPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("テスト記事1")).toBeInTheDocument();
+    });
+
+    // 日付変更でエラーを発生させる
+    vi.mocked(getNewsByDate).mockRejectedValue(new Error("日付エラー"));
+    useNewsStore.getState().fetchNewsByDate("2026-02-20");
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "再読み込み" })).toBeInTheDocument();
+    });
+
+    vi.mocked(getNewsByDate).mockResolvedValue({
+      fetchDate: "2026-02-23",
+      totalArticlesFetched: 50,
+      articles: mockArticles,
+    });
+
+    await user.click(screen.getByRole("button", { name: "再読み込み" }));
+
+    // fetchNewsByDate が fetchDate（2026-02-23）で呼ばれる
+    expect(getNewsByDate).toHaveBeenCalledWith("2026-02-23");
   });
 
   it("selectedCountryCodeがある場合、NewsPanelの代わりにCountryPanelを表示する", async () => {

@@ -49,4 +49,21 @@ describe("NewsTooltip", () => {
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
   });
+
+  it("role=dialogとaria-labelが設定されている", () => {
+    render(<NewsTooltip article={mockArticle} onClose={() => {}} />);
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toBeInTheDocument();
+    expect(dialog).toHaveAttribute("aria-label", mockArticle.titleJa);
+  });
+
+  it("EscキーでonCloseが呼ばれる", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    render(<NewsTooltip article={mockArticle} onClose={onClose} />);
+
+    await user.keyboard("{Escape}");
+    expect(onClose).toHaveBeenCalledOnce();
+  });
 });

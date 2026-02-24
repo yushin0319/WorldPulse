@@ -57,9 +57,22 @@ export default function NewsPanel({
               {article.titleJa}
             </p>
             {isSelected && (
-              <p className="mt-2 text-xs leading-relaxed text-gray-400">
-                {article.summaryJa}
-              </p>
+              <>
+                <p className="mt-2 text-xs leading-relaxed text-gray-400">
+                  {article.summaryJa}
+                </p>
+                {article.sourceUrl && (
+                  <a
+                    href={article.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="mt-2 inline-block text-xs text-blue-400 hover:text-blue-300"
+                  >
+                    元記事を読む →
+                  </a>
+                )}
+              </>
             )}
           </button>
         );

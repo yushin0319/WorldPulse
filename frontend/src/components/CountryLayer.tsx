@@ -7,10 +7,17 @@ interface CountryLayerProps {
   onCountryClick: (countryCode: string) => void;
 }
 
+// タッチデバイス（hover非対応）では国境を目立たせて操作可能と示す
+const isTouchOnly =
+  typeof window !== "undefined" &&
+  typeof window.matchMedia === "function" &&
+  window.matchMedia("(hover: none)").matches;
+
 const defaultStyle: PathOptions = {
-  fillOpacity: 0,
-  weight: 0.5,
-  color: "rgba(255,255,255,0.05)",
+  fillColor: "#ffffff",
+  fillOpacity: isTouchOnly ? 0.05 : 0,
+  weight: isTouchOnly ? 0.8 : 0.5,
+  color: isTouchOnly ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.05)",
 };
 
 const hoverStyle: PathOptions = {
