@@ -1,13 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { getCountryFlag, getCountryInfo, COUNTRY_DATA } from "../countries";
+import { getCountryFlagUrl, getCountryInfo, COUNTRY_DATA } from "../countries";
 
-describe("getCountryFlag", () => {
-  it("JPから日本国旗絵文字を生成する", () => {
-    expect(getCountryFlag("JP")).toBe("\u{1F1EF}\u{1F1F5}");
+describe("getCountryFlagUrl", () => {
+  it("JPから正しい国旗画像URLを生成する", () => {
+    expect(getCountryFlagUrl("JP")).toBe("https://flagcdn.com/24x18/jp.png");
   });
 
-  it("USからアメリカ国旗絵文字を生成する", () => {
-    expect(getCountryFlag("US")).toBe("\u{1F1FA}\u{1F1F8}");
+  it("USから正しい国旗画像URLを生成する", () => {
+    expect(getCountryFlagUrl("US")).toBe("https://flagcdn.com/24x18/us.png");
   });
 });
 

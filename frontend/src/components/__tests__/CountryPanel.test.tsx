@@ -24,7 +24,7 @@ const mockArticle = (
 });
 
 describe("CountryPanel", () => {
-  it("ヘッダーに国旗・国名・首都を表示する", () => {
+  it("ヘッダーに国旗画像・国名・首都を表示する", () => {
     render(
       <CountryPanel
         countryCode="JP"
@@ -36,6 +36,9 @@ describe("CountryPanel", () => {
     expect(screen.getByText(/日本/)).toBeInTheDocument();
     expect(screen.getByText(/東京/)).toBeInTheDocument();
     expect(screen.getByTestId("country-panel-header")).toBeInTheDocument();
+    const flagImg = screen.getByAltText("日本の国旗");
+    expect(flagImg).toBeInTheDocument();
+    expect(flagImg).toHaveAttribute("src", "https://flagcdn.com/24x18/jp.png");
   });
 
   it("戻るボタンでonBackが呼ばれる", async () => {
