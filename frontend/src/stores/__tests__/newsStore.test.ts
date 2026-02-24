@@ -80,6 +80,28 @@ describe("newsStore", () => {
     expect(state.error).toBeNull();
   });
 
+  it("fetchTodayNews: fetchDateがavailableDatesに含まれない場合、先頭に追加する", async () => {
+    // datesキャッシュが古く "2026-02-23" のみの状態
+    useNewsStore.setState({ availableDates: ["2026-02-23"] });
+    const newData = { ...mockTodayNews, fetchDate: "2026-02-24" };
+    vi.mocked(getTodayNews).mockResolvedValue(newData);
+
+    await useNewsStore.getState().fetchTodayNews();
+
+    const state = useNewsStore.getState();
+    expect(state.fetchDate).toBe("2026-02-24");
+    expect(state.availableDates).toEqual(["2026-02-24", "2026-02-23"]);
+  });
+
+  it("fetchTodayNews: fetchDateが既にavailableDatesにある場合、重複追加しない", async () => {
+    useNewsStore.setState({ availableDates: ["2026-02-23", "2026-02-22"] });
+    vi.mocked(getTodayNews).mockResolvedValue(mockTodayNews);
+
+    await useNewsStore.getState().fetchTodayNews();
+
+    expect(useNewsStore.getState().availableDates).toEqual(["2026-02-23", "2026-02-22"]);
+  });
+
   it("fetchTodayNews: エラー時にerrorをセットする", async () => {
     vi.mocked(getTodayNews).mockRejectedValue(new Error("Network error"));
 

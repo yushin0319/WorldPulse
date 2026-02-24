@@ -32,11 +32,18 @@ export const useNewsStore = create<NewsState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       const data = await getTodayNews();
-      set({
-        articles: data.articles,
-        fetchDate: data.fetchDate,
-        totalArticlesFetched: data.totalArticlesFetched,
-        isLoading: false,
+      set((state) => {
+        // datesキャッシュが古い場合に備え、fetchDateを先頭に追加
+        const dates = state.availableDates.includes(data.fetchDate)
+          ? state.availableDates
+          : [data.fetchDate, ...state.availableDates];
+        return {
+          articles: data.articles,
+          fetchDate: data.fetchDate,
+          totalArticlesFetched: data.totalArticlesFetched,
+          availableDates: dates,
+          isLoading: false,
+        };
       });
     } catch {
       set({
