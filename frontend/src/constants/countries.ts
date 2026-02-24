@@ -95,13 +95,9 @@ export const COUNTRY_DATA: Record<string, CountryInfo> = {
   GL: { nameJa: "グリーンランド", capitalJa: "ヌーク" },
 };
 
-// 国旗絵文字を国コードから生成
-export function getCountryFlag(countryCode: string): string {
-  return countryCode
-    .toUpperCase()
-    .split("")
-    .map((c) => String.fromCodePoint(0x1f1e6 + c.charCodeAt(0) - 65))
-    .join("");
+// 国旗画像URLを生成（flagcdn.com CDN）
+export function getCountryFlagUrl(countryCode: string): string {
+  return `https://flagcdn.com/24x18/${countryCode.toLowerCase()}.png`;
 }
 
 // 安全に国情報を取得（未登録の場合はコードをそのまま表示）

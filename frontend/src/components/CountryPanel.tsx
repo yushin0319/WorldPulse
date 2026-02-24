@@ -1,5 +1,5 @@
 import type { CountryNewsArticle } from "../types/api";
-import { getCountryFlag, getCountryInfo } from "../constants/countries";
+import { getCountryFlagUrl, getCountryInfo } from "../constants/countries";
 import { CATEGORY_BG } from "../constants/categories";
 
 interface CountryPanelProps {
@@ -16,7 +16,6 @@ export default function CountryPanel({
   onBack,
 }: CountryPanelProps) {
   const info = getCountryInfo(countryCode);
-  const flag = getCountryFlag(countryCode);
 
   // 日付でグループ化
   const grouped = articles.reduce<Record<string, CountryNewsArticle[]>>(
@@ -44,7 +43,12 @@ export default function CountryPanel({
         >
           ← 戻る
         </button>
-        <span className="text-lg">{flag}</span>
+        <img
+          src={getCountryFlagUrl(countryCode)}
+          alt={`${info.nameJa}の国旗`}
+          className="inline-block h-[18px] w-[24px] rounded-sm"
+          loading="lazy"
+        />
         <span className="font-medium text-gray-200">{info.nameJa}</span>
         <span className="text-xs text-gray-500">({info.capitalJa})</span>
       </div>
