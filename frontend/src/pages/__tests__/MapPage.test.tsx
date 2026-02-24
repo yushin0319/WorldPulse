@@ -7,6 +7,7 @@ vi.mock("../../services/api", () => ({
   getTodayNews: vi.fn(),
   getNewsByDate: vi.fn(),
   getAvailableDates: vi.fn(),
+  getNewsByCountry: vi.fn(),
 }));
 
 // react-leaflet モック
@@ -22,7 +23,7 @@ vi.mock("react-leaflet", () => ({
 // leaflet CSS モック
 vi.mock("leaflet/dist/leaflet.css", () => ({}));
 
-import { getTodayNews, getAvailableDates } from "../../services/api";
+import { getTodayNews, getAvailableDates, getNewsByCountry } from "../../services/api";
 import { useNewsStore } from "../../stores/newsStore";
 
 const mockArticles = [
@@ -53,6 +54,9 @@ describe("MapPage", () => {
       isLoading: false,
       isFetching: false,
       error: null,
+      selectedCountryCode: null,
+      countryArticles: [],
+      isLoadingCountry: false,
     });
     vi.clearAllMocks();
   });
@@ -115,6 +119,37 @@ describe("MapPage", () => {
     await waitFor(() => {
       expect(screen.getByTestId("world-map")).toBeInTheDocument();
       expect(screen.getByText("テスト記事1")).toBeInTheDocument();
+    });
+  });
+
+  it("selectedCountryCodeがある場合、NewsPanelの代わりにCountryPanelを表示する", async () => {
+    vi.mocked(getTodayNews).mockResolvedValue({
+      fetchDate: "2026-02-23",
+      totalArticlesFetched: 50,
+      articles: mockArticles,
+    });
+    vi.mocked(getAvailableDates).mockResolvedValue({ dates: ["2026-02-23"] });
+    vi.mocked(getNewsByCountry).mockResolvedValue({
+      countryCode: "JP",
+      articles: [
+        { ...mockArticles[0], fetchDate: "2026-02-23" },
+      ],
+    });
+
+    render(<MapPage />);
+
+    // データ取得待ち
+    await waitFor(() => {
+      expect(screen.getByText("テスト記事1")).toBeInTheDocument();
+    });
+
+    // 国パネルを開く
+    useNewsStore.getState().selectCountry("JP");
+    await useNewsStore.getState().fetchCountryNews("JP");
+
+    await waitFor(() => {
+      expect(screen.getByTestId("country-panel")).toBeInTheDocument();
+      expect(screen.queryByTestId("news-panel")).not.toBeInTheDocument();
     });
   });
 });

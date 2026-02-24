@@ -54,3 +54,13 @@ export interface PreviousArticle {
   originalTitle: string;
   fetchDate: string;
 }
+
+// 国別ニュース履歴用
+export interface CountryNewsArticle extends NewsArticle {
+  fetchDate: string;
+}
+
+export interface CountryNewsResponse {
+  countryCode: string;
+  articles: CountryNewsArticle[];
+}

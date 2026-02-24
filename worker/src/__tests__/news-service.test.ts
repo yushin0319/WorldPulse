@@ -14,6 +14,7 @@ import {
   getAvailableDates,
   getJstDateString,
   getRecentArticles,
+  getNewsByCountry,
 } from "../services/news";
 import type { RssArticle, GeminiSelectedArticle } from "../types";
 
@@ -219,26 +220,33 @@ describe("D1 ニュースサービス", () => {
   });
 });
 
+// ヘルパー: 指定日付でテストデータを直接INSERT
+async function insertDayWithArticles(
+  date: string,
+  articles: { title: string; titleJa: string; countryCode?: string }[]
+) {
+  const dailyId = crypto.randomUUID();
+  await env.DB.prepare(
+    "INSERT INTO daily_news (id, fetch_date, total_articles_fetched) VALUES (?, ?, ?)"
+  ).bind(dailyId, date, articles.length).run();
+  for (let i = 0; i < articles.length; i++) {
+    await env.DB.prepare(
+      `INSERT INTO news_articles (id, daily_news_id, rank, source_name, source_url, original_title, original_snippet, title_ja, summary_ja, country_code, latitude, longitude, category)
+       VALUES (?, ?, ?, 'BBC', 'http://bbc.com', ?, 'snippet', ?, '要約', ?, 35.0, 139.0, 'general')`
+    ).bind(
+      crypto.randomUUID(), dailyId, i + 1,
+      articles[i].title, articles[i].titleJa,
+      articles[i].countryCode ?? "JP"
+    ).run();
+  }
+}
+
 describe("getRecentArticles", () => {
   beforeEach(async () => {
     await initDb();
     await env.DB.exec("DELETE FROM news_articles");
     await env.DB.exec("DELETE FROM daily_news");
   });
-
-  // ヘルパー: 指定日付でテストデータを直接INSERT
-  async function insertDayWithArticles(date: string, articles: { title: string; titleJa: string }[]) {
-    const dailyId = crypto.randomUUID();
-    await env.DB.prepare(
-      "INSERT INTO daily_news (id, fetch_date, total_articles_fetched) VALUES (?, ?, ?)"
-    ).bind(dailyId, date, articles.length).run();
-    for (let i = 0; i < articles.length; i++) {
-      await env.DB.prepare(
-        `INSERT INTO news_articles (id, daily_news_id, rank, source_name, source_url, original_title, original_snippet, title_ja, summary_ja, country_code, latitude, longitude, category)
-         VALUES (?, ?, ?, 'BBC', 'http://bbc.com', ?, 'snippet', ?, '要約', 'JP', 35.0, 139.0, 'general')`
-      ).bind(crypto.randomUUID(), dailyId, i + 1, articles[i].title, articles[i].titleJa).run();
-    }
-  }
 
   it("過去の記事を取得できる", async () => {
     await insertDayWithArticles("2020-01-01", [
@@ -275,5 +283,46 @@ describe("getRecentArticles", () => {
     // days=1 → 最大10件
     const result = await getRecentArticles(env.DB, 1);
     expect(result.length).toBeLessThanOrEqual(10);
+  });
+});
+
+describe("getNewsByCountry", () => {
+  beforeEach(async () => {
+    await initDb();
+    await env.DB.exec("DELETE FROM news_articles");
+    await env.DB.exec("DELETE FROM daily_news");
+  });
+
+  it("指定した国コードの記事のみを返す", async () => {
+    await saveDailyNews(env.DB, mockArticles, mockSelected);
+    const result = await getNewsByCountry(env.DB, "JP");
+    expect(result.countryCode).toBe("JP");
+    expect(result.articles).toHaveLength(1);
+    expect(result.articles[0].countryCode).toBe("JP");
+  });
+
+  it("各記事にfetchDateが含まれる", async () => {
+    await saveDailyNews(env.DB, mockArticles, mockSelected);
+    const result = await getNewsByCountry(env.DB, "JP");
+    expect(result.articles[0].fetchDate).toBe(getJstDateString());
+  });
+
+  it("日付降順・ランク昇順でソートされる", async () => {
+    await insertDayWithArticles("2026-02-20", [
+      { title: "Old", titleJa: "古い記事" },
+    ]);
+    await insertDayWithArticles("2026-02-21", [
+      { title: "New", titleJa: "新しい記事" },
+    ]);
+    const result = await getNewsByCountry(env.DB, "JP");
+    expect(result.articles).toHaveLength(2);
+    expect(result.articles[0].fetchDate).toBe("2026-02-21");
+    expect(result.articles[1].fetchDate).toBe("2026-02-20");
+  });
+
+  it("該当記事がない国コードは空配列を返す", async () => {
+    const result = await getNewsByCountry(env.DB, "ZZ");
+    expect(result.countryCode).toBe("ZZ");
+    expect(result.articles).toHaveLength(0);
   });
 });

@@ -122,4 +122,67 @@ describe("News API ルート", () => {
     );
     expect(res.headers.get("Cache-Control")).toBe("public, max-age=3600");
   });
+
+  it("GET /api/news/country/:code: 正しい国コードで200を返す", async () => {
+    await saveDailyNews(env.DB, mockArticles, mockSelected);
+    const res = await app.request(
+      "/api/news/country/JP",
+      {},
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { countryCode: string; articles: unknown[] };
+    expect(body.countryCode).toBe("JP");
+    expect(body.articles).toHaveLength(1);
+  });
+
+  it("GET /api/news/country/:code: 小文字の国コードは400を返す", async () => {
+    const res = await app.request(
+      "/api/news/country/jp",
+      {},
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("GET /api/news/country/:code: 3文字コードは400を返す", async () => {
+    const res = await app.request(
+      "/api/news/country/JPN",
+      {},
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it("GET /api/news/country/:code: 該当記事なしでも200で空配列を返す", async () => {
+    const res = await app.request(
+      "/api/news/country/ZZ",
+      {},
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { articles: unknown[] };
+    expect(body.articles).toHaveLength(0);
+  });
+
+  it("GET /api/news/country/:code: Cache-Controlが1800秒に設定される", async () => {
+    await saveDailyNews(env.DB, mockArticles, mockSelected);
+    const res = await app.request(
+      "/api/news/country/JP",
+      {},
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+    );
+    expect(res.headers.get("Cache-Control")).toBe("public, max-age=1800");
+  });
+
+  it("GET /api/news/:date: country追加後も正常に動作する", async () => {
+    await saveDailyNews(env.DB, mockArticles, mockSelected);
+    const today = getJstDateString();
+    const res = await app.request(
+      `/api/news/${today}`,
+      {},
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+    );
+    expect(res.status).toBe(200);
+  });
 });

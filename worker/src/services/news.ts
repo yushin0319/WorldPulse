@@ -5,6 +5,7 @@ import type {
   RssArticle,
   GeminiSelectedArticle,
   PreviousArticle,
+  CountryNewsResponse,
 } from "../types";
 
 // 今日（or最新日）のニュース取得
@@ -168,6 +169,44 @@ export async function getRecentArticles(
     originalTitle: r.original_title as string,
     fetchDate: r.fetch_date as string,
   }));
+}
+
+// 国別ニュース履歴取得（全日付横断）
+export async function getNewsByCountry(
+  db: D1Database,
+  countryCode: string
+): Promise<CountryNewsResponse> {
+  const { results } = await db
+    .prepare(
+      `SELECT na.id, na.rank, na.source_name, na.source_url, na.original_title,
+              na.title_ja, na.summary_ja, na.country_code, na.latitude, na.longitude,
+              na.category, na.published_at, dn.fetch_date
+       FROM news_articles na
+       JOIN daily_news dn ON na.daily_news_id = dn.id
+       WHERE na.country_code = ?
+       ORDER BY dn.fetch_date DESC, na.rank ASC`
+    )
+    .bind(countryCode)
+    .all();
+
+  return {
+    countryCode,
+    articles: results.map((r) => ({
+      id: r.id as string,
+      rank: r.rank as number,
+      sourceName: r.source_name as string,
+      sourceUrl: r.source_url as string,
+      originalTitle: r.original_title as string,
+      titleJa: r.title_ja as string,
+      summaryJa: r.summary_ja as string,
+      countryCode: r.country_code as string,
+      latitude: r.latitude as number,
+      longitude: r.longitude as number,
+      category: r.category as string,
+      publishedAt: (r.published_at as string) ?? null,
+      fetchDate: r.fetch_date as string,
+    })),
+  };
 }
 
 // ヘルパー: daily_news_id で記事一覧取得（必要カラムのみ）

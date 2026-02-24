@@ -26,3 +26,4 @@ CREATE TABLE IF NOT EXISTS news_articles (
 
 CREATE INDEX IF NOT EXISTS idx_daily_news_date ON daily_news(fetch_date DESC);
 CREATE INDEX IF NOT EXISTS idx_news_articles_daily ON news_articles(daily_news_id);
+CREATE INDEX IF NOT EXISTS idx_news_articles_country ON news_articles(country_code);

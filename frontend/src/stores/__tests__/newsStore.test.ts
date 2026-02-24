@@ -6,9 +6,10 @@ vi.mock("../../services/api", () => ({
   getTodayNews: vi.fn(),
   getNewsByDate: vi.fn(),
   getAvailableDates: vi.fn(),
+  getNewsByCountry: vi.fn(),
 }));
 
-import { getTodayNews, getNewsByDate, getAvailableDates } from "../../services/api";
+import { getTodayNews, getNewsByDate, getAvailableDates, getNewsByCountry } from "../../services/api";
 
 const mockTodayNews = {
   fetchDate: "2026-02-23",
@@ -43,6 +44,9 @@ describe("newsStore", () => {
       isLoading: false,
       isFetching: false,
       error: null,
+      selectedCountryCode: null,
+      countryArticles: [],
+      isLoadingCountry: false,
     });
     vi.clearAllMocks();
   });
@@ -217,5 +221,87 @@ describe("newsStore", () => {
     expect(useNewsStore.getState().availableDates).toEqual(["2026-02-23"]);
     // エラーメッセージは設定されない（静かに失敗）
     expect(useNewsStore.getState().error).toBeNull();
+  });
+
+  // --- 国パネル ---
+
+  it("初期状態: 国パネル関連がnull/空", () => {
+    const state = useNewsStore.getState();
+    expect(state.selectedCountryCode).toBeNull();
+    expect(state.countryArticles).toHaveLength(0);
+    expect(state.isLoadingCountry).toBe(false);
+  });
+
+  it("selectCountry: 国コードをセットしselectedArticleIdをクリアする", () => {
+    useNewsStore.getState().selectArticle("art-1");
+    useNewsStore.getState().selectCountry("JP");
+
+    const state = useNewsStore.getState();
+    expect(state.selectedCountryCode).toBe("JP");
+    expect(state.selectedArticleId).toBeNull();
+  });
+
+  it("selectCountry(null): 国パネルを閉じてcountryArticlesもクリアする", () => {
+    useNewsStore.setState({
+      selectedCountryCode: "JP",
+      countryArticles: [{ id: "1", rank: 1, sourceName: "BBC", sourceUrl: "", originalTitle: "", titleJa: "", summaryJa: "", countryCode: "JP", latitude: 0, longitude: 0, category: "general", publishedAt: null, fetchDate: "2026-02-23" }],
+    });
+
+    useNewsStore.getState().selectCountry(null);
+
+    expect(useNewsStore.getState().selectedCountryCode).toBeNull();
+    expect(useNewsStore.getState().countryArticles).toHaveLength(0);
+  });
+
+  it("fetchCountryNews: 成功時にcountryArticlesをセットする", async () => {
+    const mockCountryNews = {
+      countryCode: "JP",
+      articles: [
+        { id: "c1", rank: 1, sourceName: "BBC", sourceUrl: "", originalTitle: "", titleJa: "JP記事", summaryJa: "要約", countryCode: "JP", latitude: 35, longitude: 139, category: "general", publishedAt: null, fetchDate: "2026-02-23" },
+      ],
+    };
+    vi.mocked(getNewsByCountry).mockResolvedValue(mockCountryNews);
+
+    await useNewsStore.getState().fetchCountryNews("JP");
+
+    const state = useNewsStore.getState();
+    expect(state.countryArticles).toHaveLength(1);
+    expect(state.countryArticles[0].titleJa).toBe("JP記事");
+    expect(state.isLoadingCountry).toBe(false);
+    expect(state.selectedCountryCode).toBe("JP");
+  });
+
+  it("fetchCountryNews: ローディング中はisLoadingCountryがtrue", async () => {
+    let resolveFn: (value: unknown) => void;
+    vi.mocked(getNewsByCountry).mockImplementation(
+      () => new Promise((resolve) => { resolveFn = resolve; })
+    );
+
+    const promise = useNewsStore.getState().fetchCountryNews("US");
+    expect(useNewsStore.getState().isLoadingCountry).toBe(true);
+
+    resolveFn!({ countryCode: "US", articles: [] });
+    await promise;
+    expect(useNewsStore.getState().isLoadingCountry).toBe(false);
+  });
+
+  it("fetchCountryNews: エラー時にerrorをセットしisLoadingCountryをfalseにする", async () => {
+    vi.mocked(getNewsByCountry).mockRejectedValue(new Error("fail"));
+
+    await useNewsStore.getState().fetchCountryNews("JP");
+
+    const state = useNewsStore.getState();
+    expect(state.error).toBe("国別ニュースの取得に失敗しました。");
+    expect(state.isLoadingCountry).toBe(false);
+  });
+
+  it("fetchNewsByDate: selectedCountryCodeもリセットする", async () => {
+    useNewsStore.setState({ selectedCountryCode: "JP", countryArticles: [{ id: "c1", rank: 1, sourceName: "", sourceUrl: "", originalTitle: "", titleJa: "", summaryJa: "", countryCode: "JP", latitude: 0, longitude: 0, category: "general", publishedAt: null, fetchDate: "2026-02-23" }] });
+    vi.mocked(getNewsByDate).mockResolvedValue(mockTodayNews);
+
+    await useNewsStore.getState().fetchNewsByDate("2026-02-23");
+
+    expect(useNewsStore.getState().selectedCountryCode).toBeNull();
+    expect(useNewsStore.getState().countryArticles).toHaveLength(0);
   });
 });

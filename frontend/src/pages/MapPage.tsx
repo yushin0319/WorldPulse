@@ -3,6 +3,7 @@ import { AnimatePresence } from "framer-motion";
 import { useNewsStore } from "../stores/newsStore";
 import WorldMap from "../components/WorldMap";
 import NewsPanel from "../components/NewsPanel";
+import CountryPanel from "../components/CountryPanel";
 import DateNavigator from "../components/DateNavigator";
 import NewsTooltip from "../components/NewsTooltip";
 
@@ -15,10 +16,15 @@ export default function MapPage() {
     isLoading,
     isFetching,
     error,
+    selectedCountryCode,
+    countryArticles,
+    isLoadingCountry,
     fetchTodayNews,
     fetchNewsByDate,
     fetchAvailableDates,
     selectArticle,
+    selectCountry,
+    fetchCountryNews,
   } = useNewsStore();
 
   useEffect(() => {
@@ -34,6 +40,19 @@ export default function MapPage() {
   const selectedArticle = articles.find((a) => a.id === selectedArticleId);
   const panelRef = useRef<HTMLDivElement>(null);
   const [tooltipTop, setTooltipTop] = useState(0);
+
+  // マーカークリック→国パネルを開く
+  const handleMarkerClick = useCallback(
+    (id: string | null) => {
+      if (!id) return;
+      const article = articles.find((a) => a.id === id);
+      if (article) {
+        selectCountry(article.countryCode);
+        fetchCountryNews(article.countryCode);
+      }
+    },
+    [articles, selectCountry, fetchCountryNews]
+  );
 
   // 選択カードの位置を測定してツールチップの top を合わせる
   const measureCardPosition = useCallback(() => {
@@ -90,7 +109,7 @@ export default function MapPage() {
           <WorldMap
             articles={articles}
             selectedArticleId={selectedArticleId}
-            onSelectArticle={selectArticle}
+            onSelectArticle={handleMarkerClick}
           />
           {/* 日付変更時のオーバーレイ（全画面スピナーではない） */}
           {isFetching && (
@@ -100,34 +119,45 @@ export default function MapPage() {
           )}
         </div>
 
-        {/* ニュースパネル: PC=右サイドバー / スマホ=下半分 */}
+        {/* パネル: PC=右サイドバー / スマホ=下半分 */}
         <div className="relative min-h-0 flex-1 border-t border-gray-800 lg:w-80 lg:flex-none lg:border-l lg:border-t-0">
-          {/* ツールチップ: PCのみ、選択カードの上端に合わせて左に表示 */}
-          <AnimatePresence>
-            {selectedArticle && (
+          {selectedCountryCode ? (
+            <CountryPanel
+              countryCode={selectedCountryCode}
+              articles={countryArticles}
+              isLoading={isLoadingCountry}
+              onBack={() => selectCountry(null)}
+            />
+          ) : (
+            <>
+              {/* ツールチップ: PCのみ、選択カードの上端に合わせて左に表示 */}
+              <AnimatePresence>
+                {selectedArticle && (
+                  <div
+                    key={selectedArticle.id}
+                    className="absolute right-full top-0 z-[1000] mr-4 hidden max-h-[calc(100%-2rem)] overflow-y-auto lg:block"
+                    style={{ top: tooltipTop }}
+                  >
+                    <NewsTooltip
+                      article={selectedArticle}
+                      onClose={() => selectArticle(null)}
+                    />
+                  </div>
+                )}
+              </AnimatePresence>
               <div
-                key={selectedArticle.id}
-                className="absolute right-full top-0 z-[1000] mr-4 hidden max-h-[calc(100%-2rem)] overflow-y-auto lg:block"
-                style={{ top: tooltipTop }}
+                ref={panelRef}
+                className="h-full overflow-y-auto"
+                onScroll={measureCardPosition}
               >
-                <NewsTooltip
-                  article={selectedArticle}
-                  onClose={() => selectArticle(null)}
+                <NewsPanel
+                  articles={articles}
+                  selectedArticleId={selectedArticleId}
+                  onSelectArticle={selectArticle}
                 />
               </div>
-            )}
-          </AnimatePresence>
-          <div
-            ref={panelRef}
-            className="h-full overflow-y-auto"
-            onScroll={measureCardPosition}
-          >
-            <NewsPanel
-              articles={articles}
-              selectedArticleId={selectedArticleId}
-              onSelectArticle={selectArticle}
-            />
-          </div>
+            </>
+          )}
         </div>
       </div>
     </div>
