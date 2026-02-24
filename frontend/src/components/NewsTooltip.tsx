@@ -1,3 +1,4 @@
+import { useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import type { NewsArticle } from "../types/api";
 
@@ -7,13 +8,30 @@ interface NewsTooltipProps {
 }
 
 export default function NewsTooltip({ article, onClose }: NewsTooltipProps) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    ref.current?.focus();
+  }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      onClose();
+    }
+  };
+
   return (
     <motion.div
+      ref={ref}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 10 }}
       transition={{ duration: 0.2 }}
-      className="relative w-80 rounded-lg border border-gray-700 bg-[#111827] p-4 shadow-xl"
+      role="dialog"
+      aria-label={article.titleJa}
+      tabIndex={-1}
+      onKeyDown={handleKeyDown}
+      className="relative w-80 rounded-lg border border-gray-700 bg-[#111827] p-4 shadow-xl outline-none"
       data-testid="news-tooltip"
     >
       <button

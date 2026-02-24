@@ -1,3 +1,5 @@
+// Category list must match worker/src/types.ts VALID_CATEGORIES
+// カテゴリを追加・変更する際は worker/src/types.ts も同時に更新すること
 export type NewsCategory =
   | "politics"
   | "economy"

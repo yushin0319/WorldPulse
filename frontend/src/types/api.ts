@@ -1,5 +1,7 @@
 import type { NewsCategory } from "../constants/categories";
 
+// NewsArticle structure mirrors worker/src/types.ts NewsArticle
+// category uses NewsCategory union type (must match worker/src/types.ts NewsCategory)
 export interface NewsArticle {
   id: string;
   rank: number;

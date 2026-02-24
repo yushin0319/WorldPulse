@@ -8,13 +8,37 @@ import { saveDailyNews, getRecentArticles } from "./services/news";
 
 const app = new Hono<{ Bindings: Env }>();
 
+// Rate Limiting（1分間60リクエスト/IP）
+// CF Workers のグローバルスコープにMapを保持（同一isolate内で有効）
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+app.use("/api/*", async (c, next) => {
+  const ip = c.req.header("cf-connecting-ip") ?? "unknown";
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (entry && now < entry.resetAt) {
+    if (entry.count >= 60) {
+      return c.json({ error: "Too many requests" }, 429);
+    }
+    entry.count++;
+  } else {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + 60_000 });
+  }
+  // 古いエントリのクリーンアップ（1000件超過時）
+  if (rateLimitMap.size > 1000) {
+    for (const [key, val] of rateLimitMap) {
+      if (now >= val.resetAt) rateLimitMap.delete(key);
+    }
+  }
+  await next();
+});
+
 // CORS（本番ドメインのみ許可）
 app.use(
   "/api/*",
   cors({
     origin: (origin, c) => {
       const allowed = c.env.CORS_ORIGIN;
-      if (origin === allowed || allowed === "*") return origin;
+      if (origin === allowed) return origin;
       return "";
     },
   })

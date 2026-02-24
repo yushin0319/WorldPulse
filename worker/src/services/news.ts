@@ -1,6 +1,7 @@
 import type {
   DailyNewsResponse,
   NewsArticle,
+  NewsCategory,
   AvailableDatesResponse,
   RssArticle,
   GeminiSelectedArticle,
@@ -81,36 +82,30 @@ function sanitizeUrl(url: string): string {
   }
 }
 
-// 日次ニュース保存（重複チェック + バッチ書込）
+// 日次ニュース保存（INSERT OR IGNOREによるアトミック重複チェック + バッチ書込）
 export async function saveDailyNews(
   db: D1Database,
   allArticles: RssArticle[],
   selected: GeminiSelectedArticle[]
 ): Promise<void> {
   const today = getJstDateString();
+  const dailyId = crypto.randomUUID();
 
-  // 既に同日のデータがあればスキップ
-  const existing = await db
-    .prepare("SELECT id FROM daily_news WHERE fetch_date = ?")
-    .bind(today)
-    .first();
-  if (existing) {
+  // INSERT OR IGNORE — fetch_dateのUNIQUE制約違反時はアトミックにスキップ
+  const dailyResult = await db
+    .prepare(
+      "INSERT OR IGNORE INTO daily_news (id, fetch_date, total_articles_fetched) VALUES (?, ?, ?)"
+    )
+    .bind(dailyId, today, allArticles.length)
+    .run();
+
+  if (dailyResult.meta.changes === 0) {
     console.log(`Already processed ${today}, skipping`);
     return;
   }
 
-  const dailyId = crypto.randomUUID();
-
-  // daily_news + news_articles を一括バッチで書込（アトミック）
+  // news_articles をバッチで書込
   const stmts: D1PreparedStatement[] = [];
-
-  stmts.push(
-    db
-      .prepare(
-        "INSERT INTO daily_news (id, fetch_date, total_articles_fetched) VALUES (?, ?, ?)"
-      )
-      .bind(dailyId, today, allArticles.length)
-  );
 
   const articleStmt = db.prepare(
     `INSERT INTO news_articles (id, daily_news_id, rank, source_name, source_url, original_title, original_snippet, title_ja, summary_ja, country_code, latitude, longitude, category, published_at)
@@ -142,10 +137,18 @@ export async function saveDailyNews(
     );
   }
 
-  await db.batch(stmts);
+  if (stmts.length > 0) {
+    await db.batch(stmts);
+  }
 }
 
 // 過去N日分の選択済み記事を取得（重複排除用）
+interface RecentArticleRow {
+  title_ja: string;
+  original_title: string;
+  fetch_date: string;
+}
+
 export async function getRecentArticles(
   db: D1Database,
   days: number = 3
@@ -162,16 +165,32 @@ export async function getRecentArticles(
        LIMIT ?`
     )
     .bind(today, days * 10)
-    .all();
+    .all<RecentArticleRow>();
 
   return results.map((r) => ({
-    titleJa: r.title_ja as string,
-    originalTitle: r.original_title as string,
-    fetchDate: r.fetch_date as string,
+    titleJa: r.title_ja,
+    originalTitle: r.original_title,
+    fetchDate: r.fetch_date,
   }));
 }
 
 // 国別ニュース履歴取得（全日付横断）
+interface CountryArticleRow {
+  id: string;
+  rank: number;
+  source_name: string;
+  source_url: string;
+  original_title: string;
+  title_ja: string;
+  summary_ja: string;
+  country_code: string;
+  latitude: number;
+  longitude: number;
+  category: string;
+  published_at: string | null;
+  fetch_date: string;
+}
+
 export async function getNewsByCountry(
   db: D1Database,
   countryCode: string
@@ -184,32 +203,47 @@ export async function getNewsByCountry(
        FROM news_articles na
        JOIN daily_news dn ON na.daily_news_id = dn.id
        WHERE na.country_code = ?
-       ORDER BY dn.fetch_date DESC, na.rank ASC`
+       ORDER BY dn.fetch_date DESC, na.rank ASC LIMIT 100`
     )
     .bind(countryCode)
-    .all();
+    .all<CountryArticleRow>();
 
   return {
     countryCode,
     articles: results.map((r) => ({
-      id: r.id as string,
-      rank: r.rank as number,
-      sourceName: r.source_name as string,
-      sourceUrl: r.source_url as string,
-      originalTitle: r.original_title as string,
-      titleJa: r.title_ja as string,
-      summaryJa: r.summary_ja as string,
-      countryCode: r.country_code as string,
-      latitude: r.latitude as number,
-      longitude: r.longitude as number,
-      category: r.category as string,
-      publishedAt: (r.published_at as string) ?? null,
-      fetchDate: r.fetch_date as string,
+      id: r.id,
+      rank: r.rank,
+      sourceName: r.source_name,
+      sourceUrl: r.source_url,
+      originalTitle: r.original_title,
+      titleJa: r.title_ja,
+      summaryJa: r.summary_ja,
+      countryCode: r.country_code,
+      latitude: r.latitude,
+      longitude: r.longitude,
+      category: r.category as NewsCategory,
+      publishedAt: r.published_at,
+      fetchDate: r.fetch_date,
     })),
   };
 }
 
 // ヘルパー: daily_news_id で記事一覧取得（必要カラムのみ）
+interface NewsArticleRow {
+  id: string;
+  rank: number;
+  source_name: string;
+  source_url: string;
+  original_title: string;
+  title_ja: string;
+  summary_ja: string;
+  country_code: string;
+  latitude: number;
+  longitude: number;
+  category: string;
+  published_at: string | null;
+}
+
 async function getArticlesByDailyId(
   db: D1Database,
   dailyId: string
@@ -222,20 +256,20 @@ async function getArticlesByDailyId(
        FROM news_articles WHERE daily_news_id = ? ORDER BY rank ASC`
     )
     .bind(dailyId)
-    .all();
+    .all<NewsArticleRow>();
 
   return results.map((r) => ({
-    id: r.id as string,
-    rank: r.rank as number,
-    sourceName: r.source_name as string,
-    sourceUrl: r.source_url as string,
-    originalTitle: r.original_title as string,
-    titleJa: r.title_ja as string,
-    summaryJa: r.summary_ja as string,
-    countryCode: r.country_code as string,
-    latitude: r.latitude as number,
-    longitude: r.longitude as number,
-    category: r.category as string,
-    publishedAt: (r.published_at as string) ?? null,
+    id: r.id,
+    rank: r.rank,
+    sourceName: r.source_name,
+    sourceUrl: r.source_url,
+    originalTitle: r.original_title,
+    titleJa: r.title_ja,
+    summaryJa: r.summary_ja,
+    countryCode: r.country_code,
+    latitude: r.latitude,
+    longitude: r.longitude,
+    category: r.category as NewsCategory,
+    publishedAt: r.published_at,
   }));
 }

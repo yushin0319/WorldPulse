@@ -112,4 +112,35 @@ describe("CountryPanel", () => {
     );
     expect(screen.getByText(/ZZ/)).toBeInTheDocument();
   });
+
+  it("sourceUrlがある場合に元記事リンクが表示される", () => {
+    const articles = [mockArticle({ sourceUrl: "https://bbc.com/1" })];
+    render(
+      <CountryPanel
+        countryCode="JP"
+        articles={articles}
+        isLoading={false}
+        onBack={vi.fn()}
+      />
+    );
+
+    const link = screen.getByText("元記事を読む →");
+    expect(link).toHaveAttribute("href", "https://bbc.com/1");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("sourceUrlが空の場合に元記事リンクが表示されない", () => {
+    const articles = [mockArticle({ sourceUrl: "" })];
+    render(
+      <CountryPanel
+        countryCode="JP"
+        articles={articles}
+        isLoading={false}
+        onBack={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByText("元記事を読む →")).not.toBeInTheDocument();
+  });
 });

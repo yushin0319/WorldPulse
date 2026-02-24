@@ -97,6 +97,16 @@ export default function CountryPanel({
                     <p className="mt-1 text-xs leading-relaxed text-gray-400">
                       {article.summaryJa}
                     </p>
+                    {article.sourceUrl && (
+                      <a
+                        href={article.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 inline-block text-xs text-blue-400 hover:text-blue-300"
+                      >
+                        元記事を読む →
+                      </a>
+                    )}
                   </div>
                 );
               })}

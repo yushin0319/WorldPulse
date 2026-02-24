@@ -325,4 +325,49 @@ describe("getNewsByCountry", () => {
     expect(result.countryCode).toBe("ZZ");
     expect(result.articles).toHaveLength(0);
   });
+
+  it("M2: 100件を超えるデータがある場合でも最大100件を返す", async () => {
+    // 11日分×10件=110件のJPデータを挿入（100件制限の検証）
+    for (let d = 1; d <= 11; d++) {
+      const date = `2026-01-${String(d).padStart(2, "0")}`;
+      const articles = Array.from({ length: 10 }, (_, i) => ({
+        title: `Article day${d} no${i}`,
+        titleJa: `記事${d}-${i}`,
+        countryCode: "JP",
+      }));
+      await insertDayWithArticles(date, articles);
+    }
+    const result = await getNewsByCountry(env.DB, "JP");
+    expect(result.articles.length).toBeLessThanOrEqual(100);
+    expect(result.articles.length).toBe(100);
+  });
+});
+
+describe("M3: saveDailyNews INSERT OR IGNORE", () => {
+  beforeEach(async () => {
+    await initDb();
+    await env.DB.exec("DELETE FROM news_articles");
+    await env.DB.exec("DELETE FROM daily_news");
+  });
+
+  it("同日に2回呼んでもエラーにならず、データは1日分のみ保存される", async () => {
+    await saveDailyNews(env.DB, mockArticles, mockSelected);
+    // 2回目はINSERT OR IGNOREでスキップ（エラーを投げない）
+    await expect(
+      saveDailyNews(env.DB, mockArticles, mockSelected)
+    ).resolves.toBeUndefined();
+
+    const result = await getTodayNews(env.DB);
+    expect(result!.articles).toHaveLength(2);
+  });
+
+  it("selected配列が空でも正常に完了する", async () => {
+    await expect(
+      saveDailyNews(env.DB, mockArticles, [])
+    ).resolves.toBeUndefined();
+
+    const result = await getTodayNews(env.DB);
+    expect(result!.totalArticlesFetched).toBe(2);
+    expect(result!.articles).toHaveLength(0);
+  });
 });
