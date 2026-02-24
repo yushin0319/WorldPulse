@@ -20,6 +20,20 @@ vi.mock("react-leaflet", () => ({
   useMap: () => ({ flyTo: vi.fn(), fitBounds: vi.fn(), getZoom: () => 2 }),
 }));
 
+// CountryLayer モック
+vi.mock("../../components/CountryLayer", () => ({
+  default: ({
+    onCountryClick,
+  }: {
+    onCountryClick: (code: string) => void;
+  }) => (
+    <div
+      data-testid="country-layer"
+      onClick={() => onCountryClick("DE")}
+    />
+  ),
+}));
+
 // leaflet CSS モック
 vi.mock("leaflet/dist/leaflet.css", () => ({}));
 
@@ -119,6 +133,33 @@ describe("MapPage", () => {
     await waitFor(() => {
       expect(screen.getByTestId("world-map")).toBeInTheDocument();
       expect(screen.getByText("テスト記事1")).toBeInTheDocument();
+    });
+  });
+
+  it("国ポリゴンクリックでCountryPanelが開く", async () => {
+    vi.mocked(getTodayNews).mockResolvedValue({
+      fetchDate: "2026-02-23",
+      totalArticlesFetched: 50,
+      articles: mockArticles,
+    });
+    vi.mocked(getAvailableDates).mockResolvedValue({ dates: ["2026-02-23"] });
+    vi.mocked(getNewsByCountry).mockResolvedValue({
+      countryCode: "DE",
+      articles: [],
+    });
+
+    render(<MapPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("world-map")).toBeInTheDocument();
+    });
+
+    // 国ポリゴンクリック（モックはDEを返す）
+    screen.getByTestId("country-layer").click();
+
+    await waitFor(() => {
+      expect(getNewsByCountry).toHaveBeenCalledWith("DE");
+      expect(screen.getByTestId("country-panel")).toBeInTheDocument();
     });
   });
 
