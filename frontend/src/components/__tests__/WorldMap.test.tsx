@@ -14,6 +14,20 @@ vi.mock("react-leaflet", () => ({
   useMap: () => ({ flyTo: vi.fn(), fitBounds: vi.fn(), getZoom: () => 2 }),
 }));
 
+// CountryLayer をモック
+vi.mock("../CountryLayer", () => ({
+  default: ({
+    onCountryClick,
+  }: {
+    onCountryClick: (code: string) => void;
+  }) => (
+    <div
+      data-testid="country-layer"
+      onClick={() => onCountryClick("JP")}
+    />
+  ),
+}));
+
 // NewsMarker をモック
 vi.mock("../NewsMarker", () => ({
   default: ({
@@ -127,5 +141,31 @@ describe("WorldMap", () => {
     );
     screen.getByTestId("marker-toggle-1").click();
     expect(onSelect).toHaveBeenCalledWith(null);
+  });
+
+  it("CountryLayerが描画される", () => {
+    render(
+      <WorldMap
+        articles={[]}
+        selectedArticleId={null}
+        onSelectArticle={() => {}}
+        onCountryClick={() => {}}
+      />
+    );
+    expect(screen.getByTestId("country-layer")).toBeInTheDocument();
+  });
+
+  it("CountryLayerクリックでonCountryClickが呼ばれる", () => {
+    const onCountryClick = vi.fn();
+    render(
+      <WorldMap
+        articles={[]}
+        selectedArticleId={null}
+        onSelectArticle={() => {}}
+        onCountryClick={onCountryClick}
+      />
+    );
+    screen.getByTestId("country-layer").click();
+    expect(onCountryClick).toHaveBeenCalledWith("JP");
   });
 });

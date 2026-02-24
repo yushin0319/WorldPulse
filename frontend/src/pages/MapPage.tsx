@@ -54,6 +54,15 @@ export default function MapPage() {
     [articles, selectCountry, fetchCountryNews]
   );
 
+  // 国ポリゴンクリック→国パネルを開く
+  const handleCountryClick = useCallback(
+    (countryCode: string) => {
+      selectCountry(countryCode);
+      fetchCountryNews(countryCode);
+    },
+    [selectCountry, fetchCountryNews]
+  );
+
   // 選択カードの位置を測定してツールチップの top を合わせる
   const measureCardPosition = useCallback(() => {
     if (!selectedArticleId || !panelRef.current) return;
@@ -110,6 +119,7 @@ export default function MapPage() {
             articles={articles}
             selectedArticleId={selectedArticleId}
             onSelectArticle={handleMarkerClick}
+            onCountryClick={handleCountryClick}
           />
           {/* 日付変更時のオーバーレイ（全画面スピナーではない） */}
           {isFetching && (

@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import type { NewsArticle } from "../types/api";
 import NewsMarker from "./NewsMarker";
+import CountryLayer from "./CountryLayer";
 
 // ラベルなしダークタイル
 const TILE_URL =
@@ -21,6 +22,7 @@ interface WorldMapProps {
   articles: NewsArticle[];
   selectedArticleId: string | null;
   onSelectArticle: (id: string | null) => void;
+  onCountryClick?: (countryCode: string) => void;
 }
 
 // 初期表示で地図をコンテナいっぱいに広げる
@@ -59,6 +61,7 @@ export default function WorldMap({
   articles,
   selectedArticleId,
   onSelectArticle,
+  onCountryClick,
 }: WorldMapProps) {
   return (
     <div className="relative h-full w-full" data-testid="world-map">
@@ -81,6 +84,9 @@ export default function WorldMap({
           noWrap
           bounds={MAX_BOUNDS}
         />
+        {onCountryClick && (
+          <CountryLayer onCountryClick={onCountryClick} />
+        )}
         <FitBounds />
         <FlyToSelected
           articles={articles}
