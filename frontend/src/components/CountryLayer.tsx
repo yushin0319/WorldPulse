@@ -20,6 +20,8 @@ const hoverStyle: PathOptions = {
   color: "rgba(255,255,255,0.3)",
 };
 
+// GeoJSONデータ（~209KB, gzip ~30KB）はpublic/に配置し遅延読み込み。
+// 初期バンドルに含まれない。データ生成: scripts/prepare-countries-geojson.mjs
 export default function CountryLayer({ onCountryClick }: CountryLayerProps) {
   const [geoData, setGeoData] = useState<GeoJSON.FeatureCollection | null>(
     null
