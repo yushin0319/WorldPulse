@@ -56,7 +56,11 @@ export default function DateNavigator({
       <span className="text-sm font-medium text-gray-200 lg:hidden">
         {formatDate(currentDate, true)}
       </span>
-      {!isToday && (
+      {isToday ? (
+        <span className="rounded bg-green-700 px-2 py-0.5 text-xs text-green-100">
+          今日
+        </span>
+      ) : (
         <button
           onClick={goToday}
           className="rounded bg-blue-600 px-2 py-0.5 text-xs text-white hover:bg-blue-500"

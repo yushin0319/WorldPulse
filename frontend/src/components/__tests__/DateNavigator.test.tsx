@@ -93,7 +93,7 @@ describe("DateNavigator", () => {
     expect(screen.getByText("今日")).toBeInTheDocument();
   });
 
-  it("今日の場合は今日ボタンを表示しない", () => {
+  it("今日の場合は今日ラベルを表示する（ボタンではない）", () => {
     render(
       <DateNavigator
         currentDate="2026-02-23"
@@ -101,7 +101,9 @@ describe("DateNavigator", () => {
         onDateChange={() => {}}
       />
     );
-    expect(screen.queryByText("今日")).not.toBeInTheDocument();
+    const todayLabel = screen.getByText("今日");
+    expect(todayLabel).toBeInTheDocument();
+    expect(todayLabel.tagName).not.toBe("BUTTON");
   });
 
   it("今日ボタンクリックで最新日付に移動する", async () => {
@@ -161,7 +163,8 @@ describe("DateNavigator", () => {
     );
     expect(screen.getByLabelText("前の日")).toBeDisabled();
     expect(screen.getByLabelText("次の日")).toBeDisabled();
-    // 今日なので今日ボタンは非表示
-    expect(screen.queryByText("今日")).not.toBeInTheDocument();
+    // 今日なので今日ラベルが表示される（ボタンではない）
+    const todayLabel = screen.getByText("今日");
+    expect(todayLabel.tagName).not.toBe("BUTTON");
   });
 });
