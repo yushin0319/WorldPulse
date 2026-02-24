@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildPrompt, parseGeminiResponse } from "../services/gemini";
-import type { RssArticle } from "../types";
+import type { RssArticle, PreviousArticle } from "../types";
 
 describe("buildPrompt", () => {
   it("記事一覧を正しいフォーマットでプロンプトに変換する", () => {
@@ -32,6 +32,32 @@ describe("buildPrompt", () => {
   it("空配列でもプロンプトを生成できる", () => {
     const prompt = buildPrompt([]);
     expect(prompt).toContain("ARTICLES:");
+  });
+
+  it("previousArticlesなしではPREVIOUSLY COVEREDセクションが含まれない", () => {
+    const articles: RssArticle[] = [
+      { title: "Test", snippet: "Snippet", url: "http://example.com", source: "BBC", publishedAt: null },
+    ];
+    const prompt = buildPrompt(articles, []);
+    expect(prompt).not.toContain("PREVIOUSLY COVERED");
+  });
+
+  it("previousArticlesありではPREVIOUSLY COVEREDセクションが含まれる", () => {
+    const articles: RssArticle[] = [
+      { title: "Test", snippet: "Snippet", url: "http://example.com", source: "BBC", publishedAt: null },
+    ];
+    const prev: PreviousArticle[] = [
+      { titleJa: "過去記事1", originalTitle: "Past Article 1", fetchDate: "2026-02-23" },
+      { titleJa: "過去記事2", originalTitle: "Past Article 2", fetchDate: "2026-02-22" },
+    ];
+    const prompt = buildPrompt(articles, prev);
+    expect(prompt).toContain("PREVIOUSLY COVERED");
+    expect(prompt).toContain("Past Article 1");
+    expect(prompt).toContain("過去記事1");
+    expect(prompt).toContain("[2026-02-23]");
+    expect(prompt).toContain("Past Article 2");
+    expect(prompt).toContain("[2026-02-22]");
+    expect(prompt).toContain("significant new development");
   });
 });
 

@@ -1,4 +1,4 @@
-import type { RssArticle, GeminiSelectedArticle } from "../types";
+import type { RssArticle, GeminiSelectedArticle, PreviousArticle } from "../types";
 
 const GEMINI_API_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
@@ -7,11 +7,29 @@ const GEMINI_API_URL =
 const MAX_ARTICLES_FOR_PROMPT = 100;
 
 // Geminiに送るプロンプトを構築
-export function buildPrompt(articles: RssArticle[]): string {
+export function buildPrompt(
+  articles: RssArticle[],
+  previousArticles?: PreviousArticle[]
+): string {
   const limited = articles.slice(0, MAX_ARTICLES_FOR_PROMPT);
   const articleList = limited
     .map((a, i) => `[${i}] ${a.source} | ${a.title} | ${a.snippet}`)
     .join("\n");
+
+  // 過去記事の重複回避セクション
+  let dedupSection = "";
+  if (previousArticles && previousArticles.length > 0) {
+    const prevList = previousArticles
+      .map((p) => `- [${p.fetchDate}] ${p.originalTitle} (${p.titleJa})`)
+      .join("\n");
+    const dayCount = new Set(previousArticles.map((p) => p.fetchDate)).size;
+    dedupSection = `
+PREVIOUSLY COVERED (past ${dayCount} day(s)):
+Do NOT select articles on these topics UNLESS there is a significant new development (e.g., major escalation, resolution, new casualties, policy reversal).
+${prevList}
+
+`;
+  }
 
   return `You are a world news editor. Select the top 10 most globally significant stories from the articles below.
 
@@ -19,12 +37,12 @@ RULES:
 - Select exactly 10 articles (or fewer if less than 10 available)
 - Prefer geographic diversity (different countries/regions)
 - Prefer category diversity (politics, economy, conflict, science, disaster, health, environment, tech, culture, general)
+- Avoid topics already covered in previous days unless there is a significant new development
 - For each selected article, provide accurate latitude/longitude of the event location
 - title_ja must be concise Japanese (max 20 characters)
 - summary_ja must be informative Japanese summary (max 200 characters)
 - Return a JSON array only, no markdown formatting
-
-INPUT FORMAT: [index] SOURCE | title | snippet
+${dedupSection}INPUT FORMAT: [index] SOURCE | title | snippet
 
 OUTPUT: JSON array of objects with these fields:
 - index: number (article index from input)
@@ -91,10 +109,11 @@ export function parseGeminiResponse(
 // Gemini API呼出（エラー時は例外をスロー）
 export async function selectTopNews(
   articles: RssArticle[],
-  apiKey: string
+  apiKey: string,
+  previousArticles?: PreviousArticle[]
 ): Promise<GeminiSelectedArticle[]> {
   const limited = articles.slice(0, MAX_ARTICLES_FOR_PROMPT);
-  const prompt = buildPrompt(limited);
+  const prompt = buildPrompt(limited, previousArticles);
 
   const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
     method: "POST",

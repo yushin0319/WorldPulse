@@ -13,6 +13,7 @@ import {
   getNewsByDate,
   getAvailableDates,
   getJstDateString,
+  getRecentArticles,
 } from "../services/news";
 import type { RssArticle, GeminiSelectedArticle } from "../types";
 
@@ -215,5 +216,64 @@ describe("D1 ニュースサービス", () => {
     expect(result).not.toBeNull();
     expect(result!.totalArticlesFetched).toBe(2);
     expect(result!.articles).toHaveLength(0);
+  });
+});
+
+describe("getRecentArticles", () => {
+  beforeEach(async () => {
+    await initDb();
+    await env.DB.exec("DELETE FROM news_articles");
+    await env.DB.exec("DELETE FROM daily_news");
+  });
+
+  // ヘルパー: 指定日付でテストデータを直接INSERT
+  async function insertDayWithArticles(date: string, articles: { title: string; titleJa: string }[]) {
+    const dailyId = crypto.randomUUID();
+    await env.DB.prepare(
+      "INSERT INTO daily_news (id, fetch_date, total_articles_fetched) VALUES (?, ?, ?)"
+    ).bind(dailyId, date, articles.length).run();
+    for (let i = 0; i < articles.length; i++) {
+      await env.DB.prepare(
+        `INSERT INTO news_articles (id, daily_news_id, rank, source_name, source_url, original_title, original_snippet, title_ja, summary_ja, country_code, latitude, longitude, category)
+         VALUES (?, ?, ?, 'BBC', 'http://bbc.com', ?, 'snippet', ?, '要約', 'JP', 35.0, 139.0, 'general')`
+      ).bind(crypto.randomUUID(), dailyId, i + 1, articles[i].title, articles[i].titleJa).run();
+    }
+  }
+
+  it("過去の記事を取得できる", async () => {
+    await insertDayWithArticles("2020-01-01", [
+      { title: "Past Article", titleJa: "過去記事" },
+    ]);
+
+    const result = await getRecentArticles(env.DB, 3);
+    expect(result).toHaveLength(1);
+    expect(result[0].originalTitle).toBe("Past Article");
+    expect(result[0].titleJa).toBe("過去記事");
+    expect(result[0].fetchDate).toBe("2020-01-01");
+  });
+
+  it("今日の記事は含まれない", async () => {
+    await saveDailyNews(env.DB, mockArticles, mockSelected);
+
+    const result = await getRecentArticles(env.DB, 3);
+    expect(result).toHaveLength(0);
+  });
+
+  it("データがない場合は空配列を返す", async () => {
+    const result = await getRecentArticles(env.DB, 3);
+    expect(result).toHaveLength(0);
+  });
+
+  it("days*10件を上限に取得する", async () => {
+    // 2日分のデータを作成（各10件）
+    const tenArticles = Array.from({ length: 10 }, (_, i) => ({
+      title: `Article ${i}`, titleJa: `記事${i}`,
+    }));
+    await insertDayWithArticles("2020-01-01", tenArticles);
+    await insertDayWithArticles("2020-01-02", tenArticles);
+
+    // days=1 → 最大10件
+    const result = await getRecentArticles(env.DB, 1);
+    expect(result.length).toBeLessThanOrEqual(10);
   });
 });

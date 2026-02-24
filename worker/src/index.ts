@@ -4,7 +4,7 @@ import type { Env } from "./types";
 import { newsRoutes } from "./routes/news";
 import { fetchAndProcessNews } from "./services/rss";
 import { selectTopNews } from "./services/gemini";
-import { saveDailyNews } from "./services/news";
+import { saveDailyNews, getRecentArticles } from "./services/news";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -38,12 +38,13 @@ app.post("/api/trigger", async (c) => {
     if (articles.length === 0) {
       return c.json({ error: "No articles fetched" }, 500);
     }
-    const selected = await selectTopNews(articles, c.env.GEMINI_API_KEY);
+    const previousArticles = await getRecentArticles(c.env.DB, 3);
+    const selected = await selectTopNews(articles, c.env.GEMINI_API_KEY, previousArticles);
     if (selected.length === 0) {
       return c.json({ error: "Gemini returned no results", totalFetched: articles.length }, 500);
     }
     await saveDailyNews(c.env.DB, articles, selected);
-    return c.json({ ok: true, totalFetched: articles.length, selected: selected.length });
+    return c.json({ ok: true, totalFetched: articles.length, selected: selected.length, previousArticlesUsed: previousArticles.length });
   } catch (e) {
     console.error("Trigger failed:", e);
     return c.json({ error: "Internal server error" }, 500);
@@ -67,7 +68,8 @@ export default {
             return;
           }
 
-          const selected = await selectTopNews(articles, env.GEMINI_API_KEY);
+          const previousArticles = await getRecentArticles(env.DB, 3);
+          const selected = await selectTopNews(articles, env.GEMINI_API_KEY, previousArticles);
           if (selected.length === 0) {
             console.error("Gemini returned no results, skipping");
             return;
@@ -75,7 +77,7 @@ export default {
 
           await saveDailyNews(env.DB, articles, selected);
           console.log(
-            `Saved ${selected.length} articles from ${articles.length} total`
+            `Saved ${selected.length} articles from ${articles.length} total (dedup: ${previousArticles.length} previous)`
           );
         } catch (e) {
           console.error("Scheduled job failed:", e);

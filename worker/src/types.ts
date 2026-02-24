@@ -47,3 +47,10 @@ export interface DailyNewsResponse {
 export interface AvailableDatesResponse {
   dates: string[];
 }
+
+// 日をまたいだ重複排除用（過去の選択済み記事）
+export interface PreviousArticle {
+  titleJa: string;
+  originalTitle: string;
+  fetchDate: string;
+}
