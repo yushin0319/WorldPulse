@@ -75,7 +75,14 @@ export const useNewsStore = create<NewsState>((set) => ({
   fetchAvailableDates: async () => {
     try {
       const data = await getAvailableDates();
-      set({ availableDates: data.dates });
+      set((state) => {
+        // fetchTodayNewsが先に完了していた場合、fetchDateを保持
+        const dates =
+          state.fetchDate && !data.dates.includes(state.fetchDate)
+            ? [state.fetchDate, ...data.dates]
+            : data.dates;
+        return { availableDates: dates };
+      });
     } catch (e) {
       console.warn("日付一覧の取得に失敗:", e);
     }
