@@ -4,6 +4,7 @@ import {
   getTodayNews,
   getNewsByDate,
   getAvailableDates,
+  getNewsByCountry,
 } from "../services/news";
 
 export const newsRoutes = new Hono<{ Bindings: Env }>();
@@ -22,6 +23,17 @@ newsRoutes.get("/today", async (c) => {
 newsRoutes.get("/dates", async (c) => {
   const result = await getAvailableDates(c.env.DB);
   c.header("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
+  return c.json(result);
+});
+
+// 国別ニュース履歴 — 30分キャッシュ
+newsRoutes.get("/country/:code", async (c) => {
+  const code = c.req.param("code");
+  if (!/^[A-Z]{2}$/.test(code)) {
+    return c.json({ error: "Invalid country code. Use 2 uppercase letters (ISO 3166-1 alpha-2)" }, 400);
+  }
+  const result = await getNewsByCountry(c.env.DB, code);
+  c.header("Cache-Control", "public, max-age=1800");
   return c.json(result);
 });
 

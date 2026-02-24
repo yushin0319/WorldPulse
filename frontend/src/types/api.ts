@@ -24,3 +24,13 @@ export interface DailyNews {
 export interface AvailableDates {
   dates: string[];
 }
+
+// 国別ニュース履歴用
+export interface CountryNewsArticle extends NewsArticle {
+  fetchDate: string;
+}
+
+export interface CountryNewsResponse {
+  countryCode: string;
+  articles: CountryNewsArticle[];
+}

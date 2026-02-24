@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import type { NewsArticle } from "../types/api";
-import { getTodayNews, getNewsByDate, getAvailableDates } from "../services/api";
+import type { NewsArticle, CountryNewsArticle } from "../types/api";
+import { getTodayNews, getNewsByDate, getAvailableDates, getNewsByCountry } from "../services/api";
 
 interface NewsState {
   articles: NewsArticle[];
@@ -12,10 +12,17 @@ interface NewsState {
   isFetching: boolean;
   error: string | null;
 
+  // 国パネル
+  selectedCountryCode: string | null;
+  countryArticles: CountryNewsArticle[];
+  isLoadingCountry: boolean;
+
   fetchTodayNews: () => Promise<void>;
   fetchNewsByDate: (date: string) => Promise<void>;
   fetchAvailableDates: () => Promise<void>;
   selectArticle: (id: string | null) => void;
+  selectCountry: (code: string | null) => void;
+  fetchCountryNews: (code: string) => Promise<void>;
 }
 
 export const useNewsStore = create<NewsState>((set) => ({
@@ -27,6 +34,9 @@ export const useNewsStore = create<NewsState>((set) => ({
   isLoading: false,
   isFetching: false,
   error: null,
+  selectedCountryCode: null,
+  countryArticles: [],
+  isLoadingCountry: false,
 
   fetchTodayNews: async () => {
     set({ isLoading: true, error: null });
@@ -54,8 +64,8 @@ export const useNewsStore = create<NewsState>((set) => ({
   },
 
   fetchNewsByDate: async (date: string) => {
-    // 日付変更時はisFetching（全画面スピナーではなくオーバーレイ）
-    set({ isFetching: true, error: null, selectedArticleId: null });
+    // 日付変更時はisFetching（全画面スピナーではなくオーバーレイ）+ 国パネルリセット
+    set({ isFetching: true, error: null, selectedArticleId: null, selectedCountryCode: null, countryArticles: [] });
     try {
       const data = await getNewsByDate(date);
       set({
@@ -90,5 +100,26 @@ export const useNewsStore = create<NewsState>((set) => ({
 
   selectArticle: (id: string | null) => {
     set({ selectedArticleId: id });
+  },
+
+  selectCountry: (code: string | null) => {
+    if (code) {
+      set({ selectedCountryCode: code, selectedArticleId: null });
+    } else {
+      set({ selectedCountryCode: null, countryArticles: [] });
+    }
+  },
+
+  fetchCountryNews: async (code: string) => {
+    set({ isLoadingCountry: true, error: null, selectedCountryCode: code });
+    try {
+      const data = await getNewsByCountry(code);
+      set({ countryArticles: data.articles, isLoadingCountry: false });
+    } catch {
+      set({
+        error: "国別ニュースの取得に失敗しました。",
+        isLoadingCountry: false,
+      });
+    }
   },
 }));
