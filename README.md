@@ -50,6 +50,8 @@ https://worldpulse.pages.dev/
 - マーカーサイズはランク順（1-3位:大、4-7位:中、8-10位:小）
 - カテゴリ別カラー（politics/conflict:赤、economy/tech:青、science/health:緑、その他:黄）
 - クリックで日本語タイトル(~20文字) → 要約(~200文字)を表示
+- 地図上の国をクリックして国別ニュース履歴を表示（GeoJSONポリゴン）
+- 国旗画像表示（flagcdn.com CDN）
 - 日付ナビゲーションで過去のニュースを閲覧可能
 - レスポンシブ対応（PC:横並び / スマホ:縦積み）
 
@@ -118,6 +120,7 @@ wrangler secret put TRIGGER_SECRET
 | GET | `/api/news/today` | 最新日のニュース10件 |
 | GET | `/api/news/:date` | 指定日のニュース (YYYY-MM-DD) |
 | GET | `/api/news/dates` | データ存在日一覧 |
+| GET | `/api/news/country/:code` | 国別ニュース履歴 (ISO alpha-2) |
 | POST | `/api/trigger` | 手動ニュース取得 (要認証) |
 | GET | `/health` | ヘルスチェック |
 
