@@ -4,6 +4,7 @@ import type {
   AvailableDatesResponse,
   RssArticle,
   GeminiSelectedArticle,
+  PreviousArticle,
 } from "../types";
 
 // 今日（or最新日）のニュース取得
@@ -141,6 +142,32 @@ export async function saveDailyNews(
   }
 
   await db.batch(stmts);
+}
+
+// 過去N日分の選択済み記事を取得（重複排除用）
+export async function getRecentArticles(
+  db: D1Database,
+  days: number = 3
+): Promise<PreviousArticle[]> {
+  const today = getJstDateString();
+
+  const { results } = await db
+    .prepare(
+      `SELECT na.title_ja, na.original_title, dn.fetch_date
+       FROM news_articles na
+       JOIN daily_news dn ON na.daily_news_id = dn.id
+       WHERE dn.fetch_date < ?
+       ORDER BY dn.fetch_date DESC
+       LIMIT ?`
+    )
+    .bind(today, days * 10)
+    .all();
+
+  return results.map((r) => ({
+    titleJa: r.title_ja as string,
+    originalTitle: r.original_title as string,
+    fetchDate: r.fetch_date as string,
+  }));
 }
 
 // ヘルパー: daily_news_id で記事一覧取得（必要カラムのみ）
