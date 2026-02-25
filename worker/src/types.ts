@@ -12,6 +12,7 @@ export interface Env {
   GEMINI_API_KEY: string;
   CORS_ORIGIN: string;
   TRIGGER_SECRET?: string;
+  DISCORD_WEBHOOK_URL?: string;
 }
 
 export interface RssArticle {

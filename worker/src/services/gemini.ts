@@ -138,25 +138,20 @@ export function parseGeminiResponse(
   }
 }
 
-// Gemini API呼出（エラー時は例外をスロー）
-export async function selectTopNews(
-  articles: RssArticle[],
+// Gemini API 単発呼出（タイムアウト付き）
+async function callGeminiApi(
+  prompt: string,
   apiKey: string,
-  previousArticles?: PreviousArticle[]
-): Promise<GeminiSelectedArticle[]> {
-  const limited = articles.slice(0, MAX_ARTICLES_FOR_PROMPT);
-  const prompt = buildPrompt(limited, previousArticles);
-
-  // 30秒タイムアウト（rss.tsの10秒より長めに設定）
+  timeoutMs: number
+): Promise<string> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30_000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(GEMINI_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        // APIキーはURLパラメータではなくヘッダーで送信（ログへの漏洩防止）
         "x-goog-api-key": apiKey,
       },
       body: JSON.stringify({
@@ -179,10 +174,37 @@ export async function selectTopNews(
         content?: { parts?: Array<{ text?: string }> };
       }>;
     };
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-
-    return parseGeminiResponse(text, limited.length);
+    return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+// Gemini API呼出（60秒タイムアウト + 1回リトライ）
+export async function selectTopNews(
+  articles: RssArticle[],
+  apiKey: string,
+  previousArticles?: PreviousArticle[]
+): Promise<GeminiSelectedArticle[]> {
+  const limited = articles.slice(0, MAX_ARTICLES_FOR_PROMPT);
+  const prompt = buildPrompt(limited, previousArticles);
+
+  // 1回目: 180秒タイムアウト
+  try {
+    const text = await callGeminiApi(prompt, apiKey, 180_000);
+    const results = parseGeminiResponse(text, limited.length);
+    if (results.length > 0) return results;
+    console.warn("Gemini returned empty results, retrying...");
+  } catch (e) {
+    console.warn("Gemini API 1st attempt failed:", e instanceof Error ? e.message : e);
+  }
+
+  // 2回目（リトライ）: 180秒タイムアウト
+  try {
+    const text = await callGeminiApi(prompt, apiKey, 180_000);
+    return parseGeminiResponse(text, limited.length);
+  } catch (e) {
+    console.error("Gemini API 2nd attempt failed:", e instanceof Error ? e.message : e);
+    throw e;
   }
 }
