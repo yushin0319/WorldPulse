@@ -75,6 +75,19 @@ app.post("/api/trigger", async (c) => {
   }
 });
 
+// Discord通知（エラー時のみ使用）
+async function notifyDiscord(webhookUrl: string, message: string): Promise<void> {
+  try {
+    await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: message }),
+    });
+  } catch (e) {
+    console.error("Discord notification failed:", e);
+  }
+}
+
 export default {
   fetch: app.fetch,
 
@@ -85,26 +98,36 @@ export default {
   ): Promise<void> {
     ctx.waitUntil(
       (async () => {
+        const startTime = Date.now();
         try {
           const articles = await fetchAndProcessNews();
           if (articles.length === 0) {
-            console.error("No articles fetched, skipping");
+            const msg = "WorldPulse Cron: RSS取得0件。全フィードが失敗した可能性あり";
+            console.error(msg);
+            if (env.DISCORD_WEBHOOK_URL) await notifyDiscord(env.DISCORD_WEBHOOK_URL, msg);
             return;
           }
 
           const previousArticles = await getRecentArticles(env.DB, 3);
           const selected = await selectTopNews(articles, env.GEMINI_API_KEY, previousArticles);
           if (selected.length === 0) {
-            console.error("Gemini returned no results, skipping");
+            const msg = `WorldPulse Cron: Gemini選定0件（リトライ含む）。RSS ${articles.length}件取得済み`;
+            console.error(msg);
+            if (env.DISCORD_WEBHOOK_URL) await notifyDiscord(env.DISCORD_WEBHOOK_URL, msg);
             return;
           }
 
           await saveDailyNews(env.DB, articles, selected);
+          const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
           console.log(
-            `Saved ${selected.length} articles from ${articles.length} total (dedup: ${previousArticles.length} previous)`
+            `Saved ${selected.length} articles from ${articles.length} total (dedup: ${previousArticles.length} previous, ${elapsed}s)`
           );
         } catch (e) {
-          console.error("Scheduled job failed:", e);
+          const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+          const errorMsg = e instanceof Error ? e.message : String(e);
+          const msg = `WorldPulse Cron failed (${elapsed}s): ${errorMsg}`;
+          console.error(msg);
+          if (env.DISCORD_WEBHOOK_URL) await notifyDiscord(env.DISCORD_WEBHOOK_URL, msg);
         }
       })()
     );
