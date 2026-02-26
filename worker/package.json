@@ -9,14 +9,14 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "hono": "^4.7.0",
-    "fast-xml-parser": "^5.2.0"
+    "fast-xml-parser": "^5.2.0",
+    "hono": "^4.12.3"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.8.0",
+    "@cloudflare/vitest-pool-workers": "^0.12.18",
     "@cloudflare/workers-types": "^4.20250214.0",
     "typescript": "^5.8.0",
     "vitest": "~3.0.0",
-    "wrangler": "^4.67.0"
+    "wrangler": "^4.69.0"
   }
 }
