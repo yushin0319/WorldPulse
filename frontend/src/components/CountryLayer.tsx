@@ -31,8 +31,8 @@ const hoverStyle: PathOptions = {
 const selectedStyle: PathOptions = {
   fillOpacity: 0.1,
   fillColor: "#ffffff",
-  weight: 1.5,
-  color: "rgba(255,255,255,0.4)",
+  weight: 2,
+  color: "rgba(255,255,255,0.6)",
 };
 
 // GeoJSONデータ（~209KB, gzip ~30KB）はpublic/に配置し遅延読み込み。
@@ -115,9 +115,15 @@ export default function CountryLayer({ onCountryClick, selectedCountryCode }: Co
     []
   );
 
+  // style関数をメモ化。インライン関数だとレンダー毎に新参照が作られ、
+  // react-leafletが全レイヤーにsetStyle(defaultStyle)を再適用してしまう。
+  // その結果、selectedCountryCode以外の再レンダー（ニュース取得完了等）で
+  // selectedStyleが上書きされuseEffectも走らないため選択線が消える。
+  const styleFn = useCallback(() => defaultStyle, []);
+
   if (!geoData) return null;
 
   return (
-    <GeoJSON data={geoData} style={() => defaultStyle} onEachFeature={onEachFeature} />
+    <GeoJSON data={geoData} style={styleFn} onEachFeature={onEachFeature} />
   );
 }

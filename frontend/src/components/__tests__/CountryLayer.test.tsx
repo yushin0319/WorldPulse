@@ -136,7 +136,7 @@ describe("CountryLayer", () => {
 
     const jpLayer = fakeLayers.get("JP");
     expect(jpLayer?.setStyle).toHaveBeenCalledWith(
-      expect.objectContaining({ weight: 1.5, color: "rgba(255,255,255,0.4)" })
+      expect.objectContaining({ weight: 2, color: "rgba(255,255,255,0.6)" })
     );
   });
 
@@ -188,7 +188,7 @@ describe("CountryLayer", () => {
       expect.objectContaining({ weight: 0.5 })
     );
     expect(usLayer?.setStyle).toHaveBeenCalledWith(
-      expect.objectContaining({ weight: 1.5, color: "rgba(255,255,255,0.4)" })
+      expect.objectContaining({ weight: 2, color: "rgba(255,255,255,0.6)" })
     );
   });
 
@@ -212,7 +212,7 @@ describe("CountryLayer", () => {
     // 選択中の国にmouseover → selectedStyleが維持されること
     jpLayer.handlers.mouseover();
     expect(jpLayer.setStyle).toHaveBeenCalledWith(
-      expect.objectContaining({ weight: 1.5, color: "rgba(255,255,255,0.4)" })
+      expect.objectContaining({ weight: 2, color: "rgba(255,255,255,0.6)" })
     );
   });
 
@@ -236,7 +236,7 @@ describe("CountryLayer", () => {
     // 最後のsetStyle呼び出しがselectedStyle（weight: 1.5）であること
     const lastCall = jpLayer.setStyle.mock.calls.at(-1)?.[0];
     expect(lastCall).toEqual(
-      expect.objectContaining({ weight: 1.5, color: "rgba(255,255,255,0.4)" })
+      expect.objectContaining({ weight: 2, color: "rgba(255,255,255,0.6)" })
     );
   });
 
@@ -257,7 +257,7 @@ describe("CountryLayer", () => {
     // JP をクリック
     jpLayer.handlers.click();
     expect(jpLayer.setStyle).toHaveBeenCalledWith(
-      expect.objectContaining({ weight: 1.5 })
+      expect.objectContaining({ weight: 2 })
     );
 
     // US をクリック → JP は click ハンドラー内で即座に defaultStyle に戻る
@@ -268,7 +268,7 @@ describe("CountryLayer", () => {
       expect.objectContaining({ weight: 0.5 })
     );
     expect(usLayer.setStyle).toHaveBeenCalledWith(
-      expect.objectContaining({ weight: 1.5 })
+      expect.objectContaining({ weight: 2 })
     );
   });
 
