@@ -18,11 +18,14 @@ vi.mock("react-leaflet", () => ({
 vi.mock("../CountryLayer", () => ({
   default: ({
     onCountryClick,
+    selectedCountryCode,
   }: {
     onCountryClick: (code: string) => void;
+    selectedCountryCode: string | null;
   }) => (
     <div
       data-testid="country-layer"
+      data-selected-country={selectedCountryCode ?? ""}
       onClick={() => onCountryClick("JP")}
     />
   ),
@@ -167,5 +170,18 @@ describe("WorldMap", () => {
     );
     screen.getByTestId("country-layer").click();
     expect(onCountryClick).toHaveBeenCalledWith("JP");
+  });
+
+  it("selectedCountryCodeがCountryLayerに渡される", () => {
+    render(
+      <WorldMap
+        articles={[]}
+        selectedArticleId={null}
+        onSelectArticle={() => {}}
+        onCountryClick={() => {}}
+        selectedCountryCode="US"
+      />
+    );
+    expect(screen.getByTestId("country-layer").dataset.selectedCountry).toBe("US");
   });
 });

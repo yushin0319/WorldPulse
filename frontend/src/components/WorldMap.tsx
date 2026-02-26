@@ -23,6 +23,7 @@ interface WorldMapProps {
   selectedArticleId: string | null;
   onSelectArticle: (id: string | null) => void;
   onCountryClick?: (countryCode: string) => void;
+  selectedCountryCode?: string | null;
 }
 
 // 初期表示で地図をコンテナいっぱいに広げる
@@ -62,6 +63,7 @@ export default function WorldMap({
   selectedArticleId,
   onSelectArticle,
   onCountryClick,
+  selectedCountryCode,
 }: WorldMapProps) {
   return (
     <div className="relative h-full w-full" data-testid="world-map">
@@ -85,7 +87,7 @@ export default function WorldMap({
           bounds={MAX_BOUNDS}
         />
         {onCountryClick && (
-          <CountryLayer onCountryClick={onCountryClick} />
+          <CountryLayer onCountryClick={onCountryClick} selectedCountryCode={selectedCountryCode ?? null} />
         )}
         <FitBounds />
         <FlyToSelected
