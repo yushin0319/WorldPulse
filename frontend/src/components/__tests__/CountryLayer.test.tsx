@@ -1,9 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import CountryLayer from "../CountryLayer";
 
+// レイヤーのsetStyle呼び出しを追跡するためのマップ
+const fakeLayers = new Map<
+  string,
+  { setStyle: ReturnType<typeof vi.fn>; handlers: Record<string, () => void> }
+>();
+
 // react-leafletモック: GeoJSONをdivで代替
+// onEachFeatureをrender時に呼び出し、レイヤーをfakeLayersに登録する
 vi.mock("react-leaflet", () => ({
   GeoJSON: ({
     data,
@@ -12,32 +18,41 @@ vi.mock("react-leaflet", () => ({
     data: GeoJSON.FeatureCollection;
     onEachFeature?: (feature: GeoJSON.Feature, layer: unknown) => void;
     style?: unknown;
-  }) => (
-    <div data-testid="geojson-layer">
-      {data.features.map((f) => {
+  }) => {
+    // 初回render時にonEachFeatureを呼び出してレイヤーを登録
+    if (onEachFeature) {
+      data.features.forEach((f) => {
         const code = f.properties?.iso_a2 ?? "??";
-        return (
-          <div
-            key={code}
-            data-testid={`country-${code}`}
-            onClick={() => {
-              // onEachFeatureで登録されたclickハンドラをシミュレート
-              if (onEachFeature) {
-                const fakeLayer = {
-                  on: (handlers: Record<string, () => void>) => {
-                    handlers.click?.();
-                  },
-                  setStyle: vi.fn(),
-                  resetStyle: vi.fn(),
-                };
-                onEachFeature(f, fakeLayer);
-              }
-            }}
-          />
-        );
-      })}
-    </div>
-  ),
+        if (!fakeLayers.has(code)) {
+          const handlers: Record<string, () => void> = {};
+          const fakeLayer = {
+            on: (h: Record<string, () => void>) => {
+              Object.assign(handlers, h);
+            },
+            setStyle: vi.fn(),
+            handlers,
+          };
+          fakeLayers.set(code, fakeLayer);
+          onEachFeature(f, fakeLayer);
+        }
+      });
+    }
+
+    return (
+      <div data-testid="geojson-layer">
+        {data.features.map((f) => {
+          const code = f.properties?.iso_a2 ?? "??";
+          return (
+            <div
+              key={code}
+              data-testid={`country-${code}`}
+              onClick={() => fakeLayers.get(code)?.handlers.click?.()}
+            />
+          );
+        })}
+      </div>
+    );
+  },
 }));
 
 const mockGeoJSON: GeoJSON.FeatureCollection = {
@@ -59,6 +74,7 @@ const mockGeoJSON: GeoJSON.FeatureCollection = {
 describe("CountryLayer", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    fakeLayers.clear();
   });
 
   it("GeoJSONデータをfetchして描画する", async () => {
@@ -87,7 +103,6 @@ describe("CountryLayer", () => {
   });
 
   it("国クリックでonCountryClickが呼ばれる", async () => {
-    const user = userEvent.setup();
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify(mockGeoJSON), { status: 200 })
     );
@@ -99,21 +114,82 @@ describe("CountryLayer", () => {
       expect(screen.getByTestId("country-JP")).toBeInTheDocument();
     });
 
-    await user.click(screen.getByTestId("country-JP"));
+    screen.getByTestId("country-JP").click();
     expect(onCountryClick).toHaveBeenCalledWith("JP");
   });
 
-  it("selectedCountryCodeを受け取って描画できる", async () => {
+  it("selectedCountryCode変更時に対応する国にselectedStyleが適用される", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify(mockGeoJSON), { status: 200 })
     );
 
-    render(<CountryLayer onCountryClick={vi.fn()} selectedCountryCode="JP" />);
+    const { rerender } = render(
+      <CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("geojson-layer")).toBeInTheDocument();
     });
-    expect(screen.getByTestId("country-JP")).toBeInTheDocument();
+
+    // JP を選択
+    rerender(<CountryLayer onCountryClick={vi.fn()} selectedCountryCode="JP" />);
+
+    const jpLayer = fakeLayers.get("JP");
+    expect(jpLayer?.setStyle).toHaveBeenCalledWith(
+      expect.objectContaining({ weight: 1.5, color: "rgba(255,255,255,0.4)" })
+    );
+  });
+
+  it("selectedCountryCode解除時にdefaultStyleに戻る", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify(mockGeoJSON), { status: 200 })
+    );
+
+    const { rerender } = render(
+      <CountryLayer onCountryClick={vi.fn()} selectedCountryCode="JP" />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("geojson-layer")).toBeInTheDocument();
+    });
+
+    // 選択解除
+    rerender(<CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />);
+
+    const jpLayer = fakeLayers.get("JP");
+    // 最後のsetStyle呼び出しがdefaultStyle（weight: 0.5）であること
+    const lastCall = jpLayer?.setStyle.mock.calls.at(-1)?.[0];
+    expect(lastCall).toEqual(
+      expect.objectContaining({ weight: 0.5 })
+    );
+  });
+
+  it("選択国を切り替えると前の国がdefaultStyleに戻る", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify(mockGeoJSON), { status: 200 })
+    );
+
+    const { rerender } = render(
+      <CountryLayer onCountryClick={vi.fn()} selectedCountryCode="JP" />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("geojson-layer")).toBeInTheDocument();
+    });
+
+    // JP → US に切り替え
+    rerender(<CountryLayer onCountryClick={vi.fn()} selectedCountryCode="US" />);
+
+    const jpLayer = fakeLayers.get("JP");
+    const usLayer = fakeLayers.get("US");
+
+    // JPはdefaultStyleに戻り、USにselectedStyleが適用される
+    expect(jpLayer?.setStyle).toHaveBeenCalledWith(
+      expect.objectContaining({ weight: 0.5 })
+    );
+    expect(usLayer?.setStyle).toHaveBeenCalledWith(
+      expect.objectContaining({ weight: 1.5, color: "rgba(255,255,255,0.4)" })
+    );
   });
 
   it("iso_a2がない国はクリックしてもコールバックが呼ばれない", async () => {
@@ -138,8 +214,7 @@ describe("CountryLayer", () => {
       expect(screen.getByTestId("country--99")).toBeInTheDocument();
     });
 
-    const user = userEvent.setup();
-    await user.click(screen.getByTestId("country--99"));
+    screen.getByTestId("country--99").click();
     expect(onCountryClick).not.toHaveBeenCalled();
   });
 });
