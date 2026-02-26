@@ -192,6 +192,62 @@ describe("CountryLayer", () => {
     );
   });
 
+  it("クリック後のmouseoutでselectedStyleが維持される（タッチデバイス対策）", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify(mockGeoJSON), { status: 200 })
+    );
+
+    render(<CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("geojson-layer")).toBeInTheDocument();
+    });
+
+    const jpLayer = fakeLayers.get("JP")!;
+
+    // click → mouseout の順で同期的に発火（タッチデバイスの挙動を再現）
+    jpLayer.handlers.click();
+    jpLayer.handlers.mouseout();
+
+    // 最後のsetStyle呼び出しがselectedStyle（weight: 1.5）であること
+    const lastCall = jpLayer.setStyle.mock.calls.at(-1)?.[0];
+    expect(lastCall).toEqual(
+      expect.objectContaining({ weight: 1.5, color: "rgba(255,255,255,0.4)" })
+    );
+  });
+
+  it("クリックで別の国に切り替えると前の国が即座にdefaultStyleに戻る", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify(mockGeoJSON), { status: 200 })
+    );
+
+    render(<CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("geojson-layer")).toBeInTheDocument();
+    });
+
+    const jpLayer = fakeLayers.get("JP")!;
+    const usLayer = fakeLayers.get("US")!;
+
+    // JP をクリック
+    jpLayer.handlers.click();
+    expect(jpLayer.setStyle).toHaveBeenCalledWith(
+      expect.objectContaining({ weight: 1.5 })
+    );
+
+    // US をクリック → JP は click ハンドラー内で即座に defaultStyle に戻る
+    jpLayer.setStyle.mockClear();
+    usLayer.handlers.click();
+
+    expect(jpLayer.setStyle).toHaveBeenCalledWith(
+      expect.objectContaining({ weight: 0.5 })
+    );
+    expect(usLayer.setStyle).toHaveBeenCalledWith(
+      expect.objectContaining({ weight: 1.5 })
+    );
+  });
+
   it("iso_a2がない国はクリックしてもコールバックが呼ばれない", async () => {
     const noCodeGeoJSON: GeoJSON.FeatureCollection = {
       type: "FeatureCollection",
