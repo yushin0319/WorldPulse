@@ -192,6 +192,30 @@ describe("CountryLayer", () => {
     );
   });
 
+  it("選択中の国にmouseoverしてもselectedStyleが維持される", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify(mockGeoJSON), { status: 200 })
+    );
+
+    render(<CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("geojson-layer")).toBeInTheDocument();
+    });
+
+    const jpLayer = fakeLayers.get("JP")!;
+
+    // JP をクリックして選択
+    jpLayer.handlers.click();
+    jpLayer.setStyle.mockClear();
+
+    // 選択中の国にmouseover → selectedStyleが維持されること
+    jpLayer.handlers.mouseover();
+    expect(jpLayer.setStyle).toHaveBeenCalledWith(
+      expect.objectContaining({ weight: 1.5, color: "rgba(255,255,255,0.4)" })
+    );
+  });
+
   it("クリック後のmouseoutでselectedStyleが維持される（タッチデバイス対策）", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify(mockGeoJSON), { status: 200 })
