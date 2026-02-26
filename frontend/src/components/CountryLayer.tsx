@@ -80,7 +80,14 @@ export default function CountryLayer({ onCountryClick, selectedCountryCode }: Co
       }
 
       layer.on({
-        mouseover: () => path.setStyle(hoverStyle),
+        mouseover: () => {
+          // 選択中の国はselectedStyleを維持
+          if (code && code === selectedRef.current) {
+            path.setStyle(selectedStyle);
+          } else {
+            path.setStyle(hoverStyle);
+          }
+        },
         mouseout: () => {
           // 選択中の国はselectedStyleを維持
           if (code && code === selectedRef.current) {
