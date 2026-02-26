@@ -126,6 +126,7 @@ export default function MapPage() {
             selectedArticleId={selectedArticleId}
             onSelectArticle={handleMarkerClick}
             onCountryClick={handleCountryClick}
+            selectedCountryCode={selectedCountryCode}
           />
           {/* 日付変更時のオーバーレイ（全画面スピナーではない） */}
           {isFetching && (

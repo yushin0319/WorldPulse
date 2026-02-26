@@ -66,7 +66,7 @@ describe("CountryLayer", () => {
       new Response(JSON.stringify(mockGeoJSON), { status: 200 })
     );
 
-    render(<CountryLayer onCountryClick={vi.fn()} />);
+    render(<CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />);
 
     await waitFor(() => {
       expect(screen.getByTestId("geojson-layer")).toBeInTheDocument();
@@ -78,7 +78,7 @@ describe("CountryLayer", () => {
   it("fetch失敗時は何も描画しない", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Network error"));
 
-    render(<CountryLayer onCountryClick={vi.fn()} />);
+    render(<CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />);
 
     // GeoJSONレイヤーが表示されないことを確認
     await waitFor(() => {
@@ -93,7 +93,7 @@ describe("CountryLayer", () => {
     );
     const onCountryClick = vi.fn();
 
-    render(<CountryLayer onCountryClick={onCountryClick} />);
+    render(<CountryLayer onCountryClick={onCountryClick} selectedCountryCode={null} />);
 
     await waitFor(() => {
       expect(screen.getByTestId("country-JP")).toBeInTheDocument();
@@ -101,6 +101,19 @@ describe("CountryLayer", () => {
 
     await user.click(screen.getByTestId("country-JP"));
     expect(onCountryClick).toHaveBeenCalledWith("JP");
+  });
+
+  it("selectedCountryCodeを受け取って描画できる", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify(mockGeoJSON), { status: 200 })
+    );
+
+    render(<CountryLayer onCountryClick={vi.fn()} selectedCountryCode="JP" />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("geojson-layer")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("country-JP")).toBeInTheDocument();
   });
 
   it("iso_a2がない国はクリックしてもコールバックが呼ばれない", async () => {
@@ -119,7 +132,7 @@ describe("CountryLayer", () => {
     );
     const onCountryClick = vi.fn();
 
-    render(<CountryLayer onCountryClick={onCountryClick} />);
+    render(<CountryLayer onCountryClick={onCountryClick} selectedCountryCode={null} />);
 
     await waitFor(() => {
       expect(screen.getByTestId("country--99")).toBeInTheDocument();

@@ -5,6 +5,7 @@ import type L from "leaflet";
 
 interface CountryLayerProps {
   onCountryClick: (countryCode: string) => void;
+  selectedCountryCode: string | null;
 }
 
 // タッチデバイス（hover非対応）では国境を目立たせて操作可能と示す
@@ -27,14 +28,25 @@ const hoverStyle: PathOptions = {
   color: "rgba(255,255,255,0.3)",
 };
 
+const selectedStyle: PathOptions = {
+  fillOpacity: 0.1,
+  fillColor: "#ffffff",
+  weight: 1.5,
+  color: "rgba(255,255,255,0.4)",
+};
+
 // GeoJSONデータ（~209KB, gzip ~30KB）はpublic/に配置し遅延読み込み。
 // 初期バンドルに含まれない。データ生成: scripts/prepare-countries-geojson.mjs
-export default function CountryLayer({ onCountryClick }: CountryLayerProps) {
+export default function CountryLayer({ onCountryClick, selectedCountryCode }: CountryLayerProps) {
   const [geoData, setGeoData] = useState<GeoJSON.FeatureCollection | null>(
     null
   );
   const onClickRef = useRef(onCountryClick);
   onClickRef.current = onCountryClick;
+
+  // 国コード → Leafletレイヤーのマッピング
+  const layerMapRef = useRef<Map<string, L.Path>>(new Map());
+  const selectedRef = useRef<string | null>(null);
 
   useEffect(() => {
     fetch("/countries-110m.geojson")
@@ -45,14 +57,39 @@ export default function CountryLayer({ onCountryClick }: CountryLayerProps) {
       });
   }, []);
 
+  // selectedCountryCode変更時にスタイルを更新
+  useEffect(() => {
+    const prev = selectedRef.current;
+    selectedRef.current = selectedCountryCode;
+
+    if (prev && layerMapRef.current.has(prev)) {
+      layerMapRef.current.get(prev)!.setStyle(defaultStyle);
+    }
+    if (selectedCountryCode && layerMapRef.current.has(selectedCountryCode)) {
+      layerMapRef.current.get(selectedCountryCode)!.setStyle(selectedStyle);
+    }
+  }, [selectedCountryCode]);
+
   const onEachFeature = useCallback(
     (feature: GeoJSON.Feature, layer: Layer) => {
       const path = layer as L.Path;
+      const code = feature.properties?.iso_a2;
+
+      if (code && code !== "-99") {
+        layerMapRef.current.set(code, path);
+      }
+
       layer.on({
         mouseover: () => path.setStyle(hoverStyle),
-        mouseout: () => path.setStyle(defaultStyle),
+        mouseout: () => {
+          // 選択中の国はselectedStyleを維持
+          if (code && code === selectedRef.current) {
+            path.setStyle(selectedStyle);
+          } else {
+            path.setStyle(defaultStyle);
+          }
+        },
         click: () => {
-          const code = feature.properties?.iso_a2;
           if (code && code !== "-99") {
             onClickRef.current(code);
           }
