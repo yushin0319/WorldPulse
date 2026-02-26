@@ -91,6 +91,15 @@ export default function CountryLayer({ onCountryClick, selectedCountryCode }: Co
         },
         click: () => {
           if (code && code !== "-99") {
+            // 前の選択をリセット
+            const prev = selectedRef.current;
+            if (prev && prev !== code && layerMapRef.current.has(prev)) {
+              layerMapRef.current.get(prev)!.setStyle(defaultStyle);
+            }
+            // タッチデバイスではmouseoutがclick直後に同期発火するため、
+            // useEffect（非同期）を待たずにrefとスタイルを即座に更新する
+            selectedRef.current = code;
+            path.setStyle(selectedStyle);
             onClickRef.current(code);
           }
         },
