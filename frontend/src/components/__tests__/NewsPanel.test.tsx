@@ -148,6 +148,69 @@ describe("NewsPanel", () => {
     expect(screen.queryByRole("link", { name: "元記事を読む →" })).not.toBeInTheDocument();
   });
 
+  it("各カードに国名を表示する", () => {
+    const articles = [
+      mockArticle({ id: "1", countryCode: "JP" }),
+      mockArticle({ id: "2", countryCode: "US" }),
+    ];
+    render(
+      <NewsPanel
+        articles={articles}
+        selectedArticleId={null}
+        onSelectArticle={() => {}}
+      />
+    );
+    expect(screen.getByText("日本")).toBeInTheDocument();
+    expect(screen.getByText("アメリカ")).toBeInTheDocument();
+  });
+
+  it("各カードに国旗画像を表示する", () => {
+    const articles = [mockArticle({ id: "1", countryCode: "JP" })];
+    render(
+      <NewsPanel
+        articles={articles}
+        selectedArticleId={null}
+        onSelectArticle={() => {}}
+      />
+    );
+    const flag = screen.getByAltText("日本");
+    expect(flag).toBeInTheDocument();
+    expect(flag).toHaveAttribute(
+      "src",
+      expect.stringContaining("/jp.")
+    );
+  });
+
+  it("国旗画像にlg:hiddenクラスが付与されている（PCでは非表示）", () => {
+    const articles = [mockArticle({ id: "1", countryCode: "JP" })];
+    render(
+      <NewsPanel
+        articles={articles}
+        selectedArticleId={null}
+        onSelectArticle={() => {}}
+      />
+    );
+    const flag = screen.getByAltText("日本");
+    expect(flag.className).toContain("lg:hidden");
+  });
+
+  it("選択中カードの展開部分にlg:hiddenクラスが付与されている", () => {
+    const articles = [
+      mockArticle({ id: "1", summaryJa: "テスト要約" }),
+    ];
+    const { container } = render(
+      <NewsPanel
+        articles={articles}
+        selectedArticleId="1"
+        onSelectArticle={() => {}}
+      />
+    );
+    const summary = screen.getByText("テスト要約");
+    // 展開divの親がlg:hiddenであることを確認
+    const expansionDiv = summary.closest("div.lg\\:hidden");
+    expect(expansionDiv).toBeInTheDocument();
+  });
+
   it("カテゴリに応じた色の丸を表示する", () => {
     const articles = [mockArticle({ id: "1", category: "politics" })];
     const { container } = render(

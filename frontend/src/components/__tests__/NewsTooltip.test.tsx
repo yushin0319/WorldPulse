@@ -58,6 +58,21 @@ describe("NewsTooltip", () => {
     expect(dialog).toHaveAttribute("aria-label", mockArticle.titleJa);
   });
 
+  it("国名を表示する", () => {
+    render(<NewsTooltip article={mockArticle} onClose={() => {}} />);
+    expect(screen.getByText("アメリカ")).toBeInTheDocument();
+  });
+
+  it("国旗画像を表示する", () => {
+    render(<NewsTooltip article={mockArticle} onClose={() => {}} />);
+    const flag = screen.getByAltText("アメリカ");
+    expect(flag).toBeInTheDocument();
+    expect(flag).toHaveAttribute(
+      "src",
+      expect.stringContaining("/us.")
+    );
+  });
+
   it("EscキーでonCloseが呼ばれる", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
