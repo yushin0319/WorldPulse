@@ -152,7 +152,7 @@ export default function MapPage() {
                 {selectedArticle && (
                   <div
                     key={selectedArticle.id}
-                    className="absolute right-full top-0 z-[1000] mr-4 hidden max-h-[calc(100%-2rem)] overflow-y-auto lg:block"
+                    className="absolute right-full top-0 z-[1000] mr-4 hidden max-h-[calc(100%-2rem)] overflow-y-auto [scrollbar-width:none] lg:block"
                     style={{ top: tooltipTop }}
                   >
                     <NewsTooltip
@@ -164,7 +164,7 @@ export default function MapPage() {
               </AnimatePresence>
               <div
                 ref={panelRef}
-                className="h-full overflow-y-auto"
+                className="h-full overflow-y-auto [scrollbar-width:thin]"
                 onScroll={measureCardPosition}
               >
                 <NewsPanel
