@@ -50,7 +50,7 @@ export default function CountryPanel({
           loading="lazy"
         />
         <span className="font-medium text-gray-200">{info.nameJa}</span>
-        <span className="text-xs text-gray-500">({info.capitalJa})</span>
+        <span className="text-xs text-gray-500">首都：{info.capitalJa}</span>
       </div>
 
       {/* コンテンツ */}
