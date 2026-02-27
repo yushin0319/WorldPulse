@@ -1,6 +1,7 @@
 import { useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import type { NewsArticle } from "../types/api";
+import { getCountryFlagUrl, getCountryInfo } from "../constants/countries";
 
 interface NewsTooltipProps {
   article: NewsArticle;
@@ -34,16 +35,25 @@ export default function NewsTooltip({ article, onClose }: NewsTooltipProps) {
       className="relative w-80 rounded-lg border border-gray-700 bg-[#111827] p-4 shadow-xl outline-none"
       data-testid="news-tooltip"
     >
-      <button
-        onClick={onClose}
-        className="absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded text-gray-400 hover:text-gray-200"
-        aria-label="閉じる"
-      >
-        ✕
-      </button>
-      <p className="mb-1 text-xs text-gray-400">
-        #{article.rank} · {article.sourceName}
-      </p>
+      <div className="mb-1 flex items-center gap-1.5 text-xs text-gray-400">
+        <span>#{article.rank}</span>
+        <span>{getCountryInfo(article.countryCode).nameJa}</span>
+        <span>·</span>
+        <span>{article.sourceName}</span>
+        <img
+          src={getCountryFlagUrl(article.countryCode)}
+          alt={getCountryInfo(article.countryCode).nameJa}
+          className="ml-auto inline-block h-[14px] w-[20px] rounded-sm"
+          loading="lazy"
+        />
+        <button
+          onClick={onClose}
+          className="flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:text-gray-200"
+          aria-label="閉じる"
+        >
+          ✕
+        </button>
+      </div>
       <h3 className="mb-2 text-base font-bold text-gray-100">
         {article.titleJa}
       </h3>

@@ -1,5 +1,6 @@
 import type { NewsArticle } from "../types/api";
 import { CATEGORY_BG } from "../constants/categories";
+import { getCountryFlagUrl, getCountryInfo } from "../constants/countries";
 
 interface NewsPanelProps {
   articles: NewsArticle[];
@@ -46,18 +47,27 @@ export default function NewsPanel({
               <span className="text-xs font-bold text-gray-500">
                 #{article.rank}
               </span>
+              <span className="text-xs text-gray-500">
+                {getCountryInfo(article.countryCode).nameJa}
+              </span>
               <span
                 className={`h-2 w-2 rounded-full ${colorClass}`}
               />
               <span className="text-xs text-gray-500">
                 {article.sourceName}
               </span>
+              <img
+                src={getCountryFlagUrl(article.countryCode)}
+                alt={getCountryInfo(article.countryCode).nameJa}
+                className="ml-auto inline-block h-[14px] w-[20px] rounded-sm lg:hidden"
+                loading="lazy"
+              />
             </div>
             <p className="text-sm font-medium text-gray-200">
               {article.titleJa}
             </p>
             {isSelected && (
-              <>
+              <div className="lg:hidden">
                 <p className="mt-2 text-xs leading-relaxed text-gray-400">
                   {article.summaryJa}
                 </p>
@@ -72,7 +82,7 @@ export default function NewsPanel({
                     元記事を読む →
                   </a>
                 )}
-              </>
+              </div>
             )}
           </button>
         );
