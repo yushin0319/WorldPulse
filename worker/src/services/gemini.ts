@@ -60,6 +60,7 @@ RULES:
 - Prefer category diversity (politics, economy, conflict, science, disaster, health, environment, tech, culture, general)
 - Avoid topics already covered in previous days unless there is a significant new development
 - For each selected article, provide accurate latitude/longitude of the event location
+- country_code must be a real ISO 3166-1 alpha-2 code of the country where the event took place. Never use "WW" or invented codes. For scientific discoveries, use the country where the research was conducted or the discovery was made
 - title_ja must be concise Japanese (max 20 characters)
 - summary_ja must be informative Japanese summary (max 200 characters)
 - Return a JSON array only, no markdown formatting
