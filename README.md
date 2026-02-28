@@ -48,7 +48,7 @@ https://worldpulse.pages.dev/
 
 - 世界地図上にパルスアニメーション付きマーカーでニュースを表示
 - マーカーサイズはランク順（1-3位:大、4-7位:中、8-10位:小）
-- カテゴリ別カラー（politics/conflict:赤、economy/tech:青、science/health:緑、その他:黄）
+- カテゴリ別カラー（politics/conflict:赤、economy:黄、disaster:オレンジ、science/tech:青、health/environment:緑、culture:紫、general:グレー）
 - クリックで日本語タイトル(~20文字) → 要約(~200文字)を表示
 - 地図上の国をクリックして国別ニュース履歴を表示（GeoJSONポリゴン）
 - 国旗画像表示（flagcdn.com CDN）
