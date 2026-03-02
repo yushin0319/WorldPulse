@@ -1,16 +1,6 @@
-// Category list must match worker/src/types.ts VALID_CATEGORIES
-// カテゴリを追加・変更する際は worker/src/types.ts も同時に更新すること
-export type NewsCategory =
-  | "politics"
-  | "economy"
-  | "conflict"
-  | "science"
-  | "disaster"
-  | "health"
-  | "environment"
-  | "tech"
-  | "culture"
-  | "general";
+// NewsCategory / VALID_CATEGORIES は shared/types.ts が単一定義源。
+export { VALID_CATEGORIES } from "../../../shared/types";
+export type { NewsCategory } from "../../../shared/types";
 
 // HEX値（マーカー用）
 export const CATEGORY_HEX: Record<string, string> = {

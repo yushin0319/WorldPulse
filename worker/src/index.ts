@@ -8,23 +8,28 @@ import { saveDailyNews, getRecentArticles } from "./services/news";
 
 const app = new Hono<{ Bindings: Env }>();
 
-// Rate Limiting（1分間60リクエスト/IP）
-// CF Workers のグローバルスコープにMapを保持（同一isolate内で有効）
+// Rate Limiting（1分間に最大 RATE_LIMIT_MAX_REQUESTS リクエスト/IP）
+// CF Workers は isolate 単位で Map を保持するため in-memory が現実的な選択。
+// isolate が再起動されると Map はリセットされる（許容できる動作）。
+const RATE_LIMIT_MAX_REQUESTS = 60;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAP_CLEANUP_THRESHOLD = 1000;
+
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 app.use("/api/*", async (c, next) => {
   const ip = c.req.header("cf-connecting-ip") ?? "unknown";
   const now = Date.now();
   const entry = rateLimitMap.get(ip);
   if (entry && now < entry.resetAt) {
-    if (entry.count >= 60) {
+    if (entry.count >= RATE_LIMIT_MAX_REQUESTS) {
       return c.json({ error: "Too many requests" }, 429);
     }
     entry.count++;
   } else {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + 60_000 });
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
   }
-  // 古いエントリのクリーンアップ（1000件超過時）
-  if (rateLimitMap.size > 1000) {
+  // 古いエントリのクリーンアップ（RATE_LIMIT_MAP_CLEANUP_THRESHOLD 件超過時）
+  if (rateLimitMap.size > RATE_LIMIT_MAP_CLEANUP_THRESHOLD) {
     for (const [key, val] of rateLimitMap) {
       if (now >= val.resetAt) rateLimitMap.delete(key);
     }

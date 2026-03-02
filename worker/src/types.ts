@@ -1,12 +1,19 @@
-// カテゴリ定義（定義源: この配列が正）
-// frontend/src/constants/categories.ts の NewsCategory と同期すること
-export const VALID_CATEGORIES = [
-  "politics", "economy", "conflict", "science", "disaster",
-  "health", "environment", "tech", "culture", "general",
-] as const;
+// 共有型定義は shared/types.ts に集約。ここでは re-export + worker固有型のみ定義する。
+export { VALID_CATEGORIES } from "../../shared/types";
+export type {
+  NewsCategory,
+  NewsArticle,
+  DailyNews,
+  AvailableDates,
+  CountryNewsArticle,
+  CountryNewsResponse,
+} from "../../shared/types";
 
-export type NewsCategory = (typeof VALID_CATEGORIES)[number];
+// Worker サービス内で使われている既存名を維持するための型エイリアス
+export type { DailyNews as DailyNewsResponse } from "../../shared/types";
+export type { AvailableDates as AvailableDatesResponse } from "../../shared/types";
 
+// Cloudflare Workers 環境固有の型（frontend では不要）
 export interface Env {
   DB: D1Database;
   GEMINI_API_KEY: string;
@@ -33,44 +40,9 @@ export interface GeminiSelectedArticle {
   category: string;
 }
 
-export interface NewsArticle {
-  id: string;
-  rank: number;
-  sourceName: string;
-  sourceUrl: string;
-  originalTitle: string;
-  titleJa: string;
-  summaryJa: string;
-  countryCode: string;
-  latitude: number;
-  longitude: number;
-  category: NewsCategory;
-  publishedAt: string | null;
-}
-
-export interface DailyNewsResponse {
-  fetchDate: string;
-  totalArticlesFetched: number;
-  articles: NewsArticle[];
-}
-
-export interface AvailableDatesResponse {
-  dates: string[];
-}
-
 // 日をまたいだ重複排除用（過去の選択済み記事）
 export interface PreviousArticle {
   titleJa: string;
   originalTitle: string;
   fetchDate: string;
-}
-
-// 国別ニュース履歴用
-export interface CountryNewsArticle extends NewsArticle {
-  fetchDate: string;
-}
-
-export interface CountryNewsResponse {
-  countryCode: string;
-  articles: CountryNewsArticle[];
 }
