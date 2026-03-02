@@ -95,6 +95,7 @@ export const useNewsStore = create<NewsState>((set) => ({
       });
     } catch (e) {
       console.warn("日付一覧の取得に失敗:", e);
+      set({ error: "日付一覧の取得に失敗しました。" });
     }
   },
 
