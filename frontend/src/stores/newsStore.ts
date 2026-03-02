@@ -111,7 +111,7 @@ export const useNewsStore = create<NewsState>((set) => ({
   },
 
   fetchCountryNews: async (code: string) => {
-    set({ isLoadingCountry: true, error: null, selectedCountryCode: code });
+    set({ isLoadingCountry: true, error: null });
     try {
       const data = await getNewsByCountry(code);
       set({ countryArticles: data.articles, isLoadingCountry: false });

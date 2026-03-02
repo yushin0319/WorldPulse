@@ -9,20 +9,24 @@ import {
 
 export const newsRoutes = new Hono<{ Bindings: Env }>();
 
+const CACHE_SHORT = "public, max-age=300, stale-while-revalidate=3600"; // 5分 + swr1時間
+const CACHE_MEDIUM = "public, max-age=1800"; // 30分
+const CACHE_LONG = "public, max-age=3600"; // 1時間
+
 // 今日（or最新日）のニュース — 5分キャッシュ + stale-while-revalidate
 newsRoutes.get("/today", async (c) => {
   const result = await getTodayNews(c.env.DB);
   if (!result) {
     return c.json({ error: "No news data available" }, 404);
   }
-  c.header("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
+  c.header("Cache-Control", CACHE_SHORT);
   return c.json(result);
 });
 
 // データ存在日一覧 — 5分キャッシュ
 newsRoutes.get("/dates", async (c) => {
   const result = await getAvailableDates(c.env.DB);
-  c.header("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
+  c.header("Cache-Control", CACHE_SHORT);
   return c.json(result);
 });
 
@@ -33,7 +37,7 @@ newsRoutes.get("/country/:code", async (c) => {
     return c.json({ error: "Invalid country code. Use 2 uppercase letters (ISO 3166-1 alpha-2)" }, 400);
   }
   const result = await getNewsByCountry(c.env.DB, code);
-  c.header("Cache-Control", "public, max-age=1800");
+  c.header("Cache-Control", CACHE_MEDIUM);
   return c.json(result);
 });
 
@@ -47,6 +51,6 @@ newsRoutes.get("/:date", async (c) => {
   if (!result) {
     return c.json({ error: `No news data for ${date}` }, 404);
   }
-  c.header("Cache-Control", "public, max-age=3600");
+  c.header("Cache-Control", CACHE_LONG);
   return c.json(result);
 });

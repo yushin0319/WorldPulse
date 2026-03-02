@@ -268,7 +268,8 @@ describe("newsStore", () => {
     expect(state.countryArticles).toHaveLength(1);
     expect(state.countryArticles[0].titleJa).toBe("JP記事");
     expect(state.isLoadingCountry).toBe(false);
-    expect(state.selectedCountryCode).toBe("JP");
+    // fetchCountryNews は selectedCountryCode を変更しない（selectCountry の責務）
+    expect(state.selectedCountryCode).toBeNull();
   });
 
   it("fetchCountryNews: ローディング中はisLoadingCountryがtrue", async () => {
