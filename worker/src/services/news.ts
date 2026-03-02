@@ -175,19 +175,7 @@ export async function getRecentArticles(
 }
 
 // 国別ニュース履歴取得（全日付横断）
-interface CountryArticleRow {
-  id: string;
-  rank: number;
-  source_name: string;
-  source_url: string;
-  original_title: string;
-  title_ja: string;
-  summary_ja: string;
-  country_code: string;
-  latitude: number;
-  longitude: number;
-  category: string;
-  published_at: string | null;
+interface CountryArticleRow extends NewsArticleRow {
   fetch_date: string;
 }
 
@@ -210,25 +198,11 @@ export async function getNewsByCountry(
 
   return {
     countryCode,
-    articles: results.map((r) => ({
-      id: r.id,
-      rank: r.rank,
-      sourceName: r.source_name,
-      sourceUrl: r.source_url,
-      originalTitle: r.original_title,
-      titleJa: r.title_ja,
-      summaryJa: r.summary_ja,
-      countryCode: r.country_code,
-      latitude: r.latitude,
-      longitude: r.longitude,
-      category: r.category as NewsCategory,
-      publishedAt: r.published_at,
-      fetchDate: r.fetch_date,
-    })),
+    articles: results.map((r) => ({ ...rowToArticle(r), fetchDate: r.fetch_date })),
   };
 }
 
-// ヘルパー: daily_news_id で記事一覧取得（必要カラムのみ）
+// ヘルパー: DB行からNewsArticleオブジェクトを生成
 interface NewsArticleRow {
   id: string;
   rank: number;
@@ -244,6 +218,24 @@ interface NewsArticleRow {
   published_at: string | null;
 }
 
+function rowToArticle(r: NewsArticleRow): NewsArticle {
+  return {
+    id: r.id,
+    rank: r.rank,
+    sourceName: r.source_name,
+    sourceUrl: r.source_url,
+    originalTitle: r.original_title,
+    titleJa: r.title_ja,
+    summaryJa: r.summary_ja,
+    countryCode: r.country_code,
+    latitude: r.latitude,
+    longitude: r.longitude,
+    category: r.category as NewsCategory,
+    publishedAt: r.published_at,
+  };
+}
+
+// ヘルパー: daily_news_id で記事一覧取得（必要カラムのみ）
 async function getArticlesByDailyId(
   db: D1Database,
   dailyId: string
@@ -258,18 +250,5 @@ async function getArticlesByDailyId(
     .bind(dailyId)
     .all<NewsArticleRow>();
 
-  return results.map((r) => ({
-    id: r.id,
-    rank: r.rank,
-    sourceName: r.source_name,
-    sourceUrl: r.source_url,
-    originalTitle: r.original_title,
-    titleJa: r.title_ja,
-    summaryJa: r.summary_ja,
-    countryCode: r.country_code,
-    latitude: r.latitude,
-    longitude: r.longitude,
-    category: r.category as NewsCategory,
-    publishedAt: r.published_at,
-  }));
+  return results.map(rowToArticle);
 }
