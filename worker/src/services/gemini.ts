@@ -195,9 +195,9 @@ export async function selectTopNews(
     const text = await callGeminiApi(prompt, apiKey, 180_000);
     const results = parseGeminiResponse(text, limited.length);
     if (results.length > 0) return results;
-    console.warn("Gemini returned empty results, retrying...");
+    console.error("Gemini API 1st attempt: empty results", { attempt: 1, retrying: true });
   } catch (e) {
-    console.warn("Gemini API 1st attempt failed:", e instanceof Error ? e.message : e);
+    console.error("Gemini API 1st attempt failed", { attempt: 1, retrying: true, error: e instanceof Error ? e.message : String(e) });
   }
 
   // 2回目（リトライ）: 180秒タイムアウト

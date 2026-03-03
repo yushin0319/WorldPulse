@@ -219,8 +219,8 @@ describe("newsStore", () => {
 
     // エラーが起きても既存の日付一覧は保持される
     expect(useNewsStore.getState().availableDates).toEqual(["2026-02-23"]);
-    // エラーメッセージは設定されない（静かに失敗）
-    expect(useNewsStore.getState().error).toBeNull();
+    // エラーstateが設定される
+    expect(useNewsStore.getState().error).toBe("日付一覧の取得に失敗しました。");
   });
 
   // --- 国パネル ---

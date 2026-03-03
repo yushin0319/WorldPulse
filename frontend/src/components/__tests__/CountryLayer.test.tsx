@@ -91,13 +91,13 @@ describe("CountryLayer", () => {
     expect(screen.getByTestId("country-US")).toBeInTheDocument();
   });
 
-  it("fetch失敗時は何も描画しない", async () => {
+  it("fetch失敗時はエラーメッセージを表示し地図レイヤーは描画しない", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Network error"));
 
     render(<CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />);
 
-    // GeoJSONレイヤーが表示されないことを確認
     await waitFor(() => {
+      expect(screen.getByText("地図データの読み込みに失敗しました")).toBeInTheDocument();
       expect(screen.queryByTestId("geojson-layer")).not.toBeInTheDocument();
     });
   });

@@ -41,6 +41,7 @@ export default function CountryLayer({ onCountryClick, selectedCountryCode }: Co
   const [geoData, setGeoData] = useState<GeoJSON.FeatureCollection | null>(
     null
   );
+  const [loadError, setLoadError] = useState(false);
   const onClickRef = useRef(onCountryClick);
   onClickRef.current = onCountryClick;
 
@@ -52,8 +53,9 @@ export default function CountryLayer({ onCountryClick, selectedCountryCode }: Co
     fetch("/countries-110m.geojson")
       .then((res) => res.json())
       .then((data: GeoJSON.FeatureCollection) => setGeoData(data))
-      .catch(() => {
-        // fetch失敗時は何も表示しない
+      .catch((e: unknown) => {
+        console.error("GeoJSON fetch failed:", e instanceof Error ? e.message : e);
+        setLoadError(true);
       });
   }, []);
 
@@ -120,6 +122,16 @@ export default function CountryLayer({ onCountryClick, selectedCountryCode }: Co
   // その結果、selectedCountryCode以外の再レンダー（ニュース取得完了等）で
   // selectedStyleが上書きされuseEffectも走らないため選択線が消える。
   const styleFn = useCallback(() => defaultStyle, []);
+
+  if (loadError) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center z-[1000] pointer-events-none">
+        <p className="text-white/80 bg-black/50 px-3 py-1 rounded text-sm">
+          地図データの読み込みに失敗しました
+        </p>
+      </div>
+    );
+  }
 
   if (!geoData) return null;
 
