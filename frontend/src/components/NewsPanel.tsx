@@ -55,7 +55,7 @@ export default function NewsPanel({
               <img
                 src={getCountryFlagUrl(article.countryCode)}
                 alt={getCountryInfo(article.countryCode).nameJa}
-                className="ml-auto inline-block h-[14px] w-[20px] rounded-sm lg:hidden"
+                className="ml-auto inline-block h-3.5 w-5 rounded-sm lg:hidden"
                 loading="lazy"
               />
             </div>
