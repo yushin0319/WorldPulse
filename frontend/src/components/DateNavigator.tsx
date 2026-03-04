@@ -46,7 +46,7 @@ export default function DateNavigator({
         type="button"
         onClick={goPrev}
         disabled={!hasPrev}
-        className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded text-gray-400 hover:text-gray-200 disabled:opacity-30"
+        className="flex min-h-11 min-w-11 items-center justify-center rounded text-gray-400 hover:text-gray-200 disabled:opacity-30"
         aria-label="前の日"
       >
         ←
@@ -74,7 +74,7 @@ export default function DateNavigator({
         type="button"
         onClick={goNext}
         disabled={!hasNext}
-        className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded text-gray-400 hover:text-gray-200 disabled:opacity-30"
+        className="flex min-h-11 min-w-11 items-center justify-center rounded text-gray-400 hover:text-gray-200 disabled:opacity-30"
         aria-label="次の日"
       >
         →

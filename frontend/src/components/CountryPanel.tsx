@@ -47,7 +47,7 @@ export default function CountryPanel({
         <img
           src={getCountryFlagUrl(countryCode)}
           alt={`${info.nameJa}の国旗`}
-          className="inline-block h-[18px] w-[24px] rounded-sm"
+          className="inline-block h-4.5 w-6 rounded-sm"
           loading="lazy"
         />
         <span className="font-medium text-gray-200">{info.nameJa}</span>
