@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "npx @biomejs/biome check ../frontend/src ../worker/src ../shared",
+    "lint": "npx @biomejs/biome check ..",
     "preview": "vite preview"
   },
   "dependencies": {
