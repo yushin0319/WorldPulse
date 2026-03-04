@@ -1,10 +1,10 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import type { Env } from "./types";
 import { newsRoutes } from "./routes/news";
-import { fetchAndProcessNews } from "./services/rss";
 import { selectTopNews } from "./services/gemini";
-import { saveDailyNews, getRecentArticles } from "./services/news";
+import { getRecentArticles, saveDailyNews } from "./services/news";
+import { fetchAndProcessNews } from "./services/rss";
+import type { Env } from "./types";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -46,7 +46,7 @@ app.use(
       if (origin === allowed) return origin;
       return "";
     },
-  })
+  }),
 );
 
 // Routes
@@ -68,12 +68,24 @@ app.post("/api/trigger", async (c) => {
       return c.json({ error: "No articles fetched" }, 500);
     }
     const previousArticles = await getRecentArticles(c.env.DB, 3);
-    const selected = await selectTopNews(articles, c.env.GEMINI_API_KEY, previousArticles);
+    const selected = await selectTopNews(
+      articles,
+      c.env.GEMINI_API_KEY,
+      previousArticles,
+    );
     if (selected.length === 0) {
-      return c.json({ error: "Gemini returned no results", totalFetched: articles.length }, 500);
+      return c.json(
+        { error: "Gemini returned no results", totalFetched: articles.length },
+        500,
+      );
     }
     await saveDailyNews(c.env.DB, articles, selected);
-    return c.json({ ok: true, totalFetched: articles.length, selected: selected.length, previousArticlesUsed: previousArticles.length });
+    return c.json({
+      ok: true,
+      totalFetched: articles.length,
+      selected: selected.length,
+      previousArticlesUsed: previousArticles.length,
+    });
   } catch (e) {
     console.error("Trigger failed:", e);
     return c.json({ error: "Internal server error" }, 500);
@@ -81,7 +93,10 @@ app.post("/api/trigger", async (c) => {
 });
 
 // Discord通知（エラー時のみ使用）
-async function notifyDiscord(webhookUrl: string, message: string): Promise<void> {
+async function notifyDiscord(
+  webhookUrl: string,
+  message: string,
+): Promise<void> {
   try {
     await fetch(webhookUrl, {
       method: "POST",
@@ -99,7 +114,7 @@ export default {
   async scheduled(
     _event: ScheduledEvent,
     env: Env,
-    ctx: ExecutionContext
+    ctx: ExecutionContext,
   ): Promise<void> {
     ctx.waitUntil(
       (async () => {
@@ -107,34 +122,42 @@ export default {
         try {
           const articles = await fetchAndProcessNews();
           if (articles.length === 0) {
-            const msg = "WorldPulse Cron: RSS取得0件。全フィードが失敗した可能性あり";
+            const msg =
+              "WorldPulse Cron: RSS取得0件。全フィードが失敗した可能性あり";
             console.error(msg);
-            if (env.DISCORD_WEBHOOK_URL) await notifyDiscord(env.DISCORD_WEBHOOK_URL, msg);
+            if (env.DISCORD_WEBHOOK_URL)
+              await notifyDiscord(env.DISCORD_WEBHOOK_URL, msg);
             return;
           }
 
           const previousArticles = await getRecentArticles(env.DB, 3);
-          const selected = await selectTopNews(articles, env.GEMINI_API_KEY, previousArticles);
+          const selected = await selectTopNews(
+            articles,
+            env.GEMINI_API_KEY,
+            previousArticles,
+          );
           if (selected.length === 0) {
             const msg = `WorldPulse Cron: Gemini選定0件（リトライ含む）。RSS ${articles.length}件取得済み`;
             console.error(msg);
-            if (env.DISCORD_WEBHOOK_URL) await notifyDiscord(env.DISCORD_WEBHOOK_URL, msg);
+            if (env.DISCORD_WEBHOOK_URL)
+              await notifyDiscord(env.DISCORD_WEBHOOK_URL, msg);
             return;
           }
 
           await saveDailyNews(env.DB, articles, selected);
           const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
           console.log(
-            `Saved ${selected.length} articles from ${articles.length} total (dedup: ${previousArticles.length} previous, ${elapsed}s)`
+            `Saved ${selected.length} articles from ${articles.length} total (dedup: ${previousArticles.length} previous, ${elapsed}s)`,
           );
         } catch (e) {
           const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
           const errorMsg = e instanceof Error ? e.message : String(e);
           const msg = `WorldPulse Cron failed (${elapsed}s): ${errorMsg}`;
           console.error(msg);
-          if (env.DISCORD_WEBHOOK_URL) await notifyDiscord(env.DISCORD_WEBHOOK_URL, msg);
+          if (env.DISCORD_WEBHOOK_URL)
+            await notifyDiscord(env.DISCORD_WEBHOOK_URL, msg);
         }
-      })()
+      })(),
     );
   },
 };

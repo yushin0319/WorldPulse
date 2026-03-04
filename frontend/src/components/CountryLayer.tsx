@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback, useRef } from "react";
-import { GeoJSON } from "react-leaflet";
-import type { Layer, PathOptions } from "leaflet";
 import type L from "leaflet";
+import type { Layer, PathOptions } from "leaflet";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { GeoJSON } from "react-leaflet";
 
 interface CountryLayerProps {
   onCountryClick: (countryCode: string) => void;
@@ -37,9 +37,12 @@ const selectedStyle: PathOptions = {
 
 // GeoJSONデータ（~209KB, gzip ~30KB）はpublic/に配置し遅延読み込み。
 // 初期バンドルに含まれない。データ生成: scripts/prepare-countries-geojson.mjs
-export default function CountryLayer({ onCountryClick, selectedCountryCode }: CountryLayerProps) {
+export default function CountryLayer({
+  onCountryClick,
+  selectedCountryCode,
+}: CountryLayerProps) {
   const [geoData, setGeoData] = useState<GeoJSON.FeatureCollection | null>(
-    null
+    null,
   );
   const [loadError, setLoadError] = useState(false);
   const onClickRef = useRef(onCountryClick);
@@ -54,7 +57,10 @@ export default function CountryLayer({ onCountryClick, selectedCountryCode }: Co
       .then((res) => res.json())
       .then((data: GeoJSON.FeatureCollection) => setGeoData(data))
       .catch((e: unknown) => {
-        console.error("GeoJSON fetch failed:", e instanceof Error ? e.message : e);
+        console.error(
+          "GeoJSON fetch failed:",
+          e instanceof Error ? e.message : e,
+        );
         setLoadError(true);
       });
   }, []);
@@ -65,10 +71,10 @@ export default function CountryLayer({ onCountryClick, selectedCountryCode }: Co
     selectedRef.current = selectedCountryCode;
 
     if (prev && layerMapRef.current.has(prev)) {
-      layerMapRef.current.get(prev)!.setStyle(defaultStyle);
+      layerMapRef.current.get(prev)?.setStyle(defaultStyle);
     }
     if (selectedCountryCode && layerMapRef.current.has(selectedCountryCode)) {
-      layerMapRef.current.get(selectedCountryCode)!.setStyle(selectedStyle);
+      layerMapRef.current.get(selectedCountryCode)?.setStyle(selectedStyle);
     }
   }, [selectedCountryCode]);
 
@@ -103,7 +109,7 @@ export default function CountryLayer({ onCountryClick, selectedCountryCode }: Co
             // 前の選択をリセット
             const prev = selectedRef.current;
             if (prev && prev !== code && layerMapRef.current.has(prev)) {
-              layerMapRef.current.get(prev)!.setStyle(defaultStyle);
+              layerMapRef.current.get(prev)?.setStyle(defaultStyle);
             }
             // タッチデバイスではmouseoutがclick直後に同期発火するため、
             // useEffect（非同期）を待たずにrefとスタイルを即座に更新する
@@ -114,7 +120,7 @@ export default function CountryLayer({ onCountryClick, selectedCountryCode }: Co
         },
       });
     },
-    []
+    [],
   );
 
   // style関数をメモ化。インライン関数だとレンダー毎に新参照が作られ、

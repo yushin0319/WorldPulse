@@ -1,11 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  deduplicateArticles,
+  fetchAndProcessNews,
+  fetchFeed,
+  parseFeed,
   stripHtml,
   truncateSnippet,
-  deduplicateArticles,
-  parseFeed,
-  fetchFeed,
-  fetchAndProcessNews,
 } from "../services/rss";
 import type { RssArticle } from "../types";
 
@@ -42,7 +42,7 @@ describe("truncateSnippet", () => {
   it("デフォルトの制限は200文字", () => {
     const exact = "a".repeat(200);
     expect(truncateSnippet(exact)).toBe(exact);
-    expect(truncateSnippet(exact + "b")).toHaveLength(203);
+    expect(truncateSnippet(`${exact}b`)).toHaveLength(203);
   });
 });
 
@@ -144,7 +144,7 @@ describe("fetchFeed", () => {
   it("HTTPエラー時は空配列を返す", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({ ok: false, status: 500 })
+      vi.fn().mockResolvedValue({ ok: false, status: 500 }),
     );
     const result = await fetchFeed("https://example.com/feed.xml", "Test");
     expect(result).toHaveLength(0);
@@ -153,18 +153,18 @@ describe("fetchFeed", () => {
   it("ネットワークエラー（fetch throw）時は空配列を返す", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockRejectedValue(new TypeError("Failed to fetch"))
+      vi.fn().mockRejectedValue(new TypeError("Failed to fetch")),
     );
     const result = await fetchFeed("https://example.com/feed.xml", "Test");
     expect(result).toHaveLength(0);
   });
 
   it("AbortError（タイムアウト）時は空配列を返す", async () => {
-    const abortError = new DOMException("The operation was aborted", "AbortError");
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockRejectedValue(abortError)
+    const abortError = new DOMException(
+      "The operation was aborted",
+      "AbortError",
     );
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(abortError));
     const result = await fetchFeed("https://example.com/feed.xml", "Test");
     expect(result).toHaveLength(0);
   });
@@ -178,7 +178,7 @@ describe("fetchAndProcessNews", () => {
   it("全フィードが失敗した場合は空配列を返す", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockRejectedValue(new Error("Network error"))
+      vi.fn().mockRejectedValue(new Error("Network error")),
     );
     const result = await fetchAndProcessNews();
     expect(result).toHaveLength(0);

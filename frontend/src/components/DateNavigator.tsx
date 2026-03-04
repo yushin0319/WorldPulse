@@ -5,7 +5,7 @@ interface DateNavigatorProps {
 }
 
 function formatDate(dateStr: string, compact: boolean): string {
-  const d = new Date(dateStr + "T00:00:00");
+  const d = new Date(`${dateStr}T00:00:00`);
   if (compact) {
     return `${d.getMonth() + 1}/${d.getDate()}`;
   }
@@ -43,6 +43,7 @@ export default function DateNavigator({
       data-testid="date-navigator"
     >
       <button
+        type="button"
         onClick={goPrev}
         disabled={!hasPrev}
         className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded text-gray-400 hover:text-gray-200 disabled:opacity-30"
@@ -62,6 +63,7 @@ export default function DateNavigator({
         </span>
       ) : (
         <button
+          type="button"
           onClick={goToday}
           className="rounded bg-blue-600 px-2 py-0.5 text-xs text-white hover:bg-blue-500"
         >
@@ -69,6 +71,7 @@ export default function DateNavigator({
         </button>
       )}
       <button
+        type="button"
         onClick={goNext}
         disabled={!hasNext}
         className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded text-gray-400 hover:text-gray-200 disabled:opacity-30"

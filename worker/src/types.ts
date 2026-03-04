@@ -1,17 +1,17 @@
 // 共有型定義は shared/types.ts に集約。ここでは re-export + worker固有型のみ定義する。
-export { VALID_CATEGORIES } from "../../shared/types";
-export type {
-  NewsCategory,
-  NewsArticle,
-  DailyNews,
-  AvailableDates,
-  CountryNewsArticle,
-  CountryNewsResponse,
-} from "../../shared/types";
 
 // Worker サービス内で使われている既存名を維持するための型エイリアス
-export type { DailyNews as DailyNewsResponse } from "../../shared/types";
-export type { AvailableDates as AvailableDatesResponse } from "../../shared/types";
+export type {
+  AvailableDates,
+  AvailableDates as AvailableDatesResponse,
+  CountryNewsArticle,
+  CountryNewsResponse,
+  DailyNews,
+  DailyNews as DailyNewsResponse,
+  NewsArticle,
+  NewsCategory,
+} from "../../shared/types";
+export { VALID_CATEGORIES } from "../../shared/types";
 
 // Cloudflare Workers 環境固有の型（frontend では不要）
 export interface Env {

@@ -1,6 +1,11 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
-import { buildPrompt, parseGeminiResponse, selectTopNews, sanitizeForPrompt } from "../services/gemini";
-import type { RssArticle, PreviousArticle } from "../types";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  buildPrompt,
+  parseGeminiResponse,
+  sanitizeForPrompt,
+  selectTopNews,
+} from "../services/gemini";
+import type { PreviousArticle, RssArticle } from "../types";
 
 describe("buildPrompt", () => {
   it("記事一覧を正しいフォーマットでプロンプトに変換する", () => {
@@ -36,7 +41,13 @@ describe("buildPrompt", () => {
 
   it("previousArticlesなしではPREVIOUSLY COVEREDセクションが含まれない", () => {
     const articles: RssArticle[] = [
-      { title: "Test", snippet: "Snippet", url: "http://example.com", source: "BBC", publishedAt: null },
+      {
+        title: "Test",
+        snippet: "Snippet",
+        url: "http://example.com",
+        source: "BBC",
+        publishedAt: null,
+      },
     ];
     const prompt = buildPrompt(articles, []);
     expect(prompt).not.toContain("PREVIOUSLY COVERED");
@@ -44,11 +55,25 @@ describe("buildPrompt", () => {
 
   it("previousArticlesありではPREVIOUSLY COVEREDセクションが含まれる", () => {
     const articles: RssArticle[] = [
-      { title: "Test", snippet: "Snippet", url: "http://example.com", source: "BBC", publishedAt: null },
+      {
+        title: "Test",
+        snippet: "Snippet",
+        url: "http://example.com",
+        source: "BBC",
+        publishedAt: null,
+      },
     ];
     const prev: PreviousArticle[] = [
-      { titleJa: "過去記事1", originalTitle: "Past Article 1", fetchDate: "2026-02-23" },
-      { titleJa: "過去記事2", originalTitle: "Past Article 2", fetchDate: "2026-02-22" },
+      {
+        titleJa: "過去記事1",
+        originalTitle: "Past Article 1",
+        fetchDate: "2026-02-23",
+      },
+      {
+        titleJa: "過去記事2",
+        originalTitle: "Past Article 2",
+        fetchDate: "2026-02-22",
+      },
     ];
     const prompt = buildPrompt(articles, prev);
     expect(prompt).toContain("PREVIOUSLY COVERED");
@@ -106,7 +131,8 @@ describe("parseGeminiResponse", () => {
   });
 
   it("マークダウンコードブロックで囲まれたJSONもパースできる", () => {
-    const response = '```json\n[{"index":0,"country_code":"UK","lat":51.5,"lng":-0.1,"title_ja":"英国ニュース","summary_ja":"テスト要約","category":"general"}]\n```';
+    const response =
+      '```json\n[{"index":0,"country_code":"UK","lat":51.5,"lng":-0.1,"title_ja":"英国ニュース","summary_ja":"テスト要約","category":"general"}]\n```';
     const result = parseGeminiResponse(response, 10);
     expect(result).toHaveLength(1);
     expect(result[0].country_code).toBe("UK");
@@ -404,7 +430,9 @@ describe("parseGeminiResponse", () => {
 
 describe("sanitizeForPrompt", () => {
   it("改行を空白に正規化する", () => {
-    expect(sanitizeForPrompt("line1\nline2\r\nline3")).toBe("line1 line2 line3");
+    expect(sanitizeForPrompt("line1\nline2\r\nline3")).toBe(
+      "line1 line2 line3",
+    );
   });
 
   it("プロンプト制御キーワード RULES: を除去する", () => {
@@ -507,8 +535,8 @@ describe("selectTopNews", () => {
           JSON.stringify({
             candidates: [{ content: { parts: [{ text: "[]" }] } }],
           }),
-          { status: 200 }
-        )
+          { status: 200 },
+        ),
       );
     });
 
@@ -522,12 +550,19 @@ describe("selectTopNews", () => {
   it("180秒タイムアウトで両方の試行が失敗するとエラーをスロー", async () => {
     vi.useFakeTimers();
 
-    vi.stubGlobal("fetch", (_url: string, opts: RequestInit) =>
-      new Promise<Response>((_, reject) => {
-        opts.signal?.addEventListener("abort", () => {
-          reject(new DOMException("signal is aborted without reason", "AbortError"));
-        });
-      })
+    vi.stubGlobal(
+      "fetch",
+      (_url: string, opts: RequestInit) =>
+        new Promise<Response>((_, reject) => {
+          opts.signal?.addEventListener("abort", () => {
+            reject(
+              new DOMException(
+                "signal is aborted without reason",
+                "AbortError",
+              ),
+            );
+          });
+        }),
     );
 
     const promise = selectTopNews([], "test-key");
@@ -541,10 +576,17 @@ describe("selectTopNews", () => {
     vi.useFakeTimers();
 
     // 有効な結果を返す（リトライ不要にする）
-    const validResult = JSON.stringify([{
-      index: 0, country_code: "US", lat: 40, lng: -74,
-      title_ja: "テスト", summary_ja: "テスト要約", category: "general"
-    }]);
+    const validResult = JSON.stringify([
+      {
+        index: 0,
+        country_code: "US",
+        lat: 40,
+        lng: -74,
+        title_ja: "テスト",
+        summary_ja: "テスト要約",
+        category: "general",
+      },
+    ]);
 
     vi.stubGlobal("fetch", (_url: string, opts: RequestInit) => {
       return new Promise<Response>((resolve, reject) => {
@@ -557,14 +599,22 @@ describe("selectTopNews", () => {
               JSON.stringify({
                 candidates: [{ content: { parts: [{ text: validResult }] } }],
               }),
-              { status: 200 }
-            )
+              { status: 200 },
+            ),
           );
         }, 179_000);
       });
     });
 
-    const articles = [{ title: "Test", snippet: "test", url: "https://example.com", source: "Test", publishedAt: null }];
+    const articles = [
+      {
+        title: "Test",
+        snippet: "test",
+        url: "https://example.com",
+        source: "Test",
+        publishedAt: null,
+      },
+    ];
     const promise = selectTopNews(articles, "test-key");
     await vi.advanceTimersByTimeAsync(179_000);
     const result = await promise;

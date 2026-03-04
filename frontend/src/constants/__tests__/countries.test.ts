@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { getCountryFlagUrl, getCountryInfo, COUNTRY_DATA } from "../countries";
+import { describe, expect, it } from "vitest";
+import { COUNTRY_DATA, getCountryFlagUrl, getCountryInfo } from "../countries";
 
 describe("getCountryFlagUrl", () => {
   it("JPから正しい国旗画像URLを生成する", () => {

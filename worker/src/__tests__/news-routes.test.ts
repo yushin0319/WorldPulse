@@ -1,19 +1,22 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { env } from "cloudflare:test";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import type { Env } from "../types";
+import { beforeEach, describe, expect, it } from "vitest";
 import { newsRoutes } from "../routes/news";
-import { saveDailyNews, getJstDateString } from "../services/news";
-import type { RssArticle, GeminiSelectedArticle } from "../types";
+import { getJstDateString, saveDailyNews } from "../services/news";
+import type { Env, GeminiSelectedArticle, RssArticle } from "../types";
 
 // テスト用Honoアプリ
 const app = new Hono<{ Bindings: Env }>();
 app.route("/api/news", newsRoutes);
 
 async function initDb() {
-  await env.DB.exec("CREATE TABLE IF NOT EXISTS daily_news (id TEXT PRIMARY KEY, fetch_date TEXT NOT NULL UNIQUE, total_articles_fetched INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT (datetime('now')))");
-  await env.DB.exec("CREATE TABLE IF NOT EXISTS news_articles (id TEXT PRIMARY KEY, daily_news_id TEXT NOT NULL REFERENCES daily_news(id) ON DELETE CASCADE, rank INTEGER NOT NULL CHECK (rank >= 1 AND rank <= 10), source_name TEXT NOT NULL, source_url TEXT NOT NULL, original_title TEXT NOT NULL, original_snippet TEXT NOT NULL, title_ja TEXT NOT NULL, summary_ja TEXT NOT NULL, country_code TEXT NOT NULL, latitude REAL NOT NULL, longitude REAL NOT NULL, category TEXT NOT NULL DEFAULT 'general', published_at TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), UNIQUE (daily_news_id, rank))");
+  await env.DB.exec(
+    "CREATE TABLE IF NOT EXISTS daily_news (id TEXT PRIMARY KEY, fetch_date TEXT NOT NULL UNIQUE, total_articles_fetched INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
+  );
+  await env.DB.exec(
+    "CREATE TABLE IF NOT EXISTS news_articles (id TEXT PRIMARY KEY, daily_news_id TEXT NOT NULL REFERENCES daily_news(id) ON DELETE CASCADE, rank INTEGER NOT NULL CHECK (rank >= 1 AND rank <= 10), source_name TEXT NOT NULL, source_url TEXT NOT NULL, original_title TEXT NOT NULL, original_snippet TEXT NOT NULL, title_ja TEXT NOT NULL, summary_ja TEXT NOT NULL, country_code TEXT NOT NULL, latitude REAL NOT NULL, longitude REAL NOT NULL, category TEXT NOT NULL DEFAULT 'general', published_at TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), UNIQUE (daily_news_id, rank))",
+  );
 }
 
 const mockArticles: RssArticle[] = [
@@ -51,7 +54,7 @@ describe("News API ルート", () => {
     const res = await app.request(
       "/api/news/today",
       {},
-      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" },
     );
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -65,10 +68,10 @@ describe("News API ルート", () => {
     const res = await app.request(
       "/api/news/today",
       {},
-      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" },
     );
     expect(res.headers.get("Cache-Control")).toBe(
-      "public, max-age=300, stale-while-revalidate=3600"
+      "public, max-age=300, stale-while-revalidate=3600",
     );
   });
 
@@ -76,7 +79,7 @@ describe("News API ルート", () => {
     const res = await app.request(
       "/api/news/today",
       {},
-      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" },
     );
     expect(res.status).toBe(404);
   });
@@ -85,7 +88,7 @@ describe("News API ルート", () => {
     const res = await app.request(
       "/api/news/invalid",
       {},
-      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" },
     );
     expect(res.status).toBe(400);
   });
@@ -94,7 +97,7 @@ describe("News API ルート", () => {
     const res = await app.request(
       "/api/news/2000-01-01",
       {},
-      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" },
     );
     expect(res.status).toBe(404);
   });
@@ -105,7 +108,7 @@ describe("News API ルート", () => {
     const res = await app.request(
       "/api/news/dates",
       {},
-      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" },
     );
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -119,7 +122,7 @@ describe("News API ルート", () => {
     const res = await app.request(
       `/api/news/${today}`,
       {},
-      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" },
     );
     expect(res.headers.get("Cache-Control")).toBe("public, max-age=3600");
   });
@@ -129,10 +132,13 @@ describe("News API ルート", () => {
     const res = await app.request(
       "/api/news/country/JP",
       {},
-      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" },
     );
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { countryCode: string; articles: unknown[] };
+    const body = (await res.json()) as {
+      countryCode: string;
+      articles: unknown[];
+    };
     expect(body.countryCode).toBe("JP");
     expect(body.articles).toHaveLength(1);
   });
@@ -141,7 +147,7 @@ describe("News API ルート", () => {
     const res = await app.request(
       "/api/news/country/jp",
       {},
-      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" },
     );
     expect(res.status).toBe(400);
   });
@@ -150,7 +156,7 @@ describe("News API ルート", () => {
     const res = await app.request(
       "/api/news/country/JPN",
       {},
-      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" },
     );
     expect(res.status).toBe(400);
   });
@@ -159,7 +165,7 @@ describe("News API ルート", () => {
     const res = await app.request(
       "/api/news/country/ZZ",
       {},
-      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" },
     );
     expect(res.status).toBe(200);
     const body = (await res.json()) as { articles: unknown[] };
@@ -171,7 +177,7 @@ describe("News API ルート", () => {
     const res = await app.request(
       "/api/news/country/JP",
       {},
-      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" },
     );
     expect(res.headers.get("Cache-Control")).toBe("public, max-age=1800");
   });
@@ -182,7 +188,7 @@ describe("News API ルート", () => {
     const res = await app.request(
       `/api/news/${today}`,
       {},
-      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" },
     );
     expect(res.status).toBe(200);
   });
@@ -205,14 +211,14 @@ describe("M4: CORS ワイルドカード除去", () => {
           if (origin === allowed) return origin;
           return "";
         },
-      })
+      }),
     );
     corsApp.route("/api/news", newsRoutes);
 
     const res = await corsApp.request(
       "/api/news/today",
       { headers: { Origin: "https://evil.example.com" } },
-      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" }
+      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "*" },
     );
     // CORS_ORIGIN="*" でも "https://evil.example.com" !== "*" なので許可されない
     expect(res.headers.get("Access-Control-Allow-Origin")).toBeNull();
@@ -228,7 +234,7 @@ describe("M4: CORS ワイルドカード除去", () => {
           if (origin === allowed) return origin;
           return "";
         },
-      })
+      }),
     );
     corsApp.route("/api/news", newsRoutes);
 
@@ -236,9 +242,15 @@ describe("M4: CORS ワイルドカード除去", () => {
     const res = await corsApp.request(
       "/api/news/today",
       { headers: { Origin: "https://worldpulse.pages.dev" } },
-      { DB: env.DB, GEMINI_API_KEY: "", CORS_ORIGIN: "https://worldpulse.pages.dev" }
+      {
+        DB: env.DB,
+        GEMINI_API_KEY: "",
+        CORS_ORIGIN: "https://worldpulse.pages.dev",
+      },
     );
-    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("https://worldpulse.pages.dev");
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(
+      "https://worldpulse.pages.dev",
+    );
   });
 });
 
@@ -250,7 +262,10 @@ describe("M12: Rate Limiting", () => {
   });
 
   function createRateLimitApp() {
-    const localRateLimitMap = new Map<string, { count: number; resetAt: number }>();
+    const localRateLimitMap = new Map<
+      string,
+      { count: number; resetAt: number }
+    >();
     const rlApp = new Hono<{ Bindings: Env }>();
     rlApp.use("/api/*", async (c, next) => {
       const ip = c.req.header("cf-connecting-ip") ?? "unknown";
@@ -306,7 +321,7 @@ describe("M12: Rate Limiting", () => {
       await rlApp.request(
         "/api/news/today",
         { headers: { "cf-connecting-ip": "10.0.0.3" } },
-        envBindings
+        envBindings,
       );
     }
 
@@ -314,7 +329,7 @@ describe("M12: Rate Limiting", () => {
     const resB = await rlApp.request(
       "/api/news/today",
       { headers: { "cf-connecting-ip": "10.0.0.4" } },
-      envBindings
+      envBindings,
     );
     expect(resB.status).not.toBe(429);
   });

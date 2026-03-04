@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import L from "leaflet";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NewsArticle } from "../../types/api";
 
 // react-leaflet の Marker をモック
@@ -42,7 +42,7 @@ describe("NewsMarker", () => {
         article={mockArticle({ id: "abc" })}
         isSelected={false}
         onClick={() => {}}
-      />
+      />,
     );
     const call = vi.mocked(L.divIcon).mock.calls[0][0];
     expect(call?.html).toContain('data-testid="marker-abc"');
@@ -54,7 +54,7 @@ describe("NewsMarker", () => {
         article={mockArticle({ category: "politics" })}
         isSelected={false}
         onClick={() => {}}
-      />
+      />,
     );
     const call = vi.mocked(L.divIcon).mock.calls[0][0];
     // politics = #ef4444
@@ -67,7 +67,7 @@ describe("NewsMarker", () => {
         article={mockArticle()}
         isSelected={true}
         onClick={() => {}}
-      />
+      />,
     );
     const call = vi.mocked(L.divIcon).mock.calls[0][0];
     expect(call?.html).toContain("border:2px solid white");
@@ -79,7 +79,7 @@ describe("NewsMarker", () => {
         article={mockArticle()}
         isSelected={false}
         onClick={() => {}}
-      />
+      />,
     );
     const call = vi.mocked(L.divIcon).mock.calls[0][0];
     expect(call?.html).not.toContain("border:2px solid white");
@@ -92,7 +92,7 @@ describe("NewsMarker", () => {
         article={mockArticle({ id: "r1", rank: 1 })}
         isSelected={false}
         onClick={() => {}}
-      />
+      />,
     );
     const call1 = vi.mocked(L.divIcon).mock.calls[0][0];
     expect(call1?.iconSize).toEqual([44, 44]);
@@ -103,7 +103,7 @@ describe("NewsMarker", () => {
         article={mockArticle({ id: "r8", rank: 8 })}
         isSelected={false}
         onClick={() => {}}
-      />
+      />,
     );
     const lastIdx = vi.mocked(L.divIcon).mock.calls.length - 1;
     const call2 = vi.mocked(L.divIcon).mock.calls[lastIdx][0];

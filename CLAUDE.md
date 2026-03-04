@@ -51,6 +51,13 @@
   ```
 - **コミット前に vite.config.ts のプロキシ設定を戻すこと**（本番ビルドには不要）
 
+## Lint / Format
+- **Biome** で lint + format + import sort を統一管理（`biome.json`）
+- `npx @biomejs/biome check .` で全チェック、`--write` で自動修正
+- pre-commit hook で `biome check --staged` が自動実行される
+- CI（test.yml）でも lint ジョブが走る
+- ESLint / Prettier は使わない
+
 ## ルール
 - TDD: テストを先に書く
 - main直接コミット禁止、PR経由でマージ

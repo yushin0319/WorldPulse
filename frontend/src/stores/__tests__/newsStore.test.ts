@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useNewsStore } from "../newsStore";
 
 // APIモック
@@ -9,7 +9,12 @@ vi.mock("../../services/api", () => ({
   getNewsByCountry: vi.fn(),
 }));
 
-import { getTodayNews, getNewsByDate, getAvailableDates, getNewsByCountry } from "../../services/api";
+import {
+  getAvailableDates,
+  getNewsByCountry,
+  getNewsByDate,
+  getTodayNews,
+} from "../../services/api";
 
 const mockTodayNews = {
   fetchDate: "2026-02-23",
@@ -103,7 +108,10 @@ describe("newsStore", () => {
 
     await useNewsStore.getState().fetchTodayNews();
 
-    expect(useNewsStore.getState().availableDates).toEqual(["2026-02-23", "2026-02-22"]);
+    expect(useNewsStore.getState().availableDates).toEqual([
+      "2026-02-23",
+      "2026-02-22",
+    ]);
   });
 
   it("fetchTodayNews: エラー時にerrorをセットする", async () => {
@@ -112,7 +120,9 @@ describe("newsStore", () => {
     await useNewsStore.getState().fetchTodayNews();
 
     const state = useNewsStore.getState();
-    expect(state.error).toBe("ニュースの取得に失敗しました。時間をおいて再試行してください。");
+    expect(state.error).toBe(
+      "ニュースの取得に失敗しました。時間をおいて再試行してください。",
+    );
     expect(state.isLoading).toBe(false);
     expect(state.articles).toHaveLength(0);
   });
@@ -154,21 +164,26 @@ describe("newsStore", () => {
     await useNewsStore.getState().fetchNewsByDate("2026-02-22");
 
     const state = useNewsStore.getState();
-    expect(state.error).toBe("ニュースの取得に失敗しました。時間をおいて再試行してください。");
+    expect(state.error).toBe(
+      "ニュースの取得に失敗しました。時間をおいて再試行してください。",
+    );
     expect(state.isFetching).toBe(false);
   });
 
   it("fetchNewsByDate: isFetchingがtrueになりisLoadingはfalseのまま", async () => {
     let resolveFn: (value: unknown) => void;
     vi.mocked(getNewsByDate).mockImplementation(
-      () => new Promise((resolve) => { resolveFn = resolve; })
+      () =>
+        new Promise((resolve) => {
+          resolveFn = resolve;
+        }),
     );
 
     const promise = useNewsStore.getState().fetchNewsByDate("2026-02-22");
     expect(useNewsStore.getState().isFetching).toBe(true);
     expect(useNewsStore.getState().isLoading).toBe(false);
 
-    resolveFn!(mockTodayNews);
+    resolveFn?.(mockTodayNews);
     await promise;
     expect(useNewsStore.getState().isFetching).toBe(false);
   });
@@ -220,7 +235,9 @@ describe("newsStore", () => {
     // エラーが起きても既存の日付一覧は保持される
     expect(useNewsStore.getState().availableDates).toEqual(["2026-02-23"]);
     // エラーstateが設定される
-    expect(useNewsStore.getState().error).toBe("日付一覧の取得に失敗しました。");
+    expect(useNewsStore.getState().error).toBe(
+      "日付一覧の取得に失敗しました。",
+    );
   });
 
   // --- 国パネル ---
@@ -244,7 +261,23 @@ describe("newsStore", () => {
   it("selectCountry(null): 国パネルを閉じてcountryArticlesもクリアする", () => {
     useNewsStore.setState({
       selectedCountryCode: "JP",
-      countryArticles: [{ id: "1", rank: 1, sourceName: "BBC", sourceUrl: "", originalTitle: "", titleJa: "", summaryJa: "", countryCode: "JP", latitude: 0, longitude: 0, category: "general", publishedAt: null, fetchDate: "2026-02-23" }],
+      countryArticles: [
+        {
+          id: "1",
+          rank: 1,
+          sourceName: "BBC",
+          sourceUrl: "",
+          originalTitle: "",
+          titleJa: "",
+          summaryJa: "",
+          countryCode: "JP",
+          latitude: 0,
+          longitude: 0,
+          category: "general",
+          publishedAt: null,
+          fetchDate: "2026-02-23",
+        },
+      ],
     });
 
     useNewsStore.getState().selectCountry(null);
@@ -257,7 +290,21 @@ describe("newsStore", () => {
     const mockCountryNews = {
       countryCode: "JP",
       articles: [
-        { id: "c1", rank: 1, sourceName: "BBC", sourceUrl: "", originalTitle: "", titleJa: "JP記事", summaryJa: "要約", countryCode: "JP", latitude: 35, longitude: 139, category: "general", publishedAt: null, fetchDate: "2026-02-23" },
+        {
+          id: "c1",
+          rank: 1,
+          sourceName: "BBC",
+          sourceUrl: "",
+          originalTitle: "",
+          titleJa: "JP記事",
+          summaryJa: "要約",
+          countryCode: "JP",
+          latitude: 35,
+          longitude: 139,
+          category: "general",
+          publishedAt: null,
+          fetchDate: "2026-02-23",
+        },
       ],
     };
     vi.mocked(getNewsByCountry).mockResolvedValue(mockCountryNews);
@@ -275,13 +322,16 @@ describe("newsStore", () => {
   it("fetchCountryNews: ローディング中はisLoadingCountryがtrue", async () => {
     let resolveFn: (value: unknown) => void;
     vi.mocked(getNewsByCountry).mockImplementation(
-      () => new Promise((resolve) => { resolveFn = resolve; })
+      () =>
+        new Promise((resolve) => {
+          resolveFn = resolve;
+        }),
     );
 
     const promise = useNewsStore.getState().fetchCountryNews("US");
     expect(useNewsStore.getState().isLoadingCountry).toBe(true);
 
-    resolveFn!({ countryCode: "US", articles: [] });
+    resolveFn?.({ countryCode: "US", articles: [] });
     await promise;
     expect(useNewsStore.getState().isLoadingCountry).toBe(false);
   });
@@ -297,7 +347,26 @@ describe("newsStore", () => {
   });
 
   it("fetchNewsByDate: selectedCountryCodeもリセットする", async () => {
-    useNewsStore.setState({ selectedCountryCode: "JP", countryArticles: [{ id: "c1", rank: 1, sourceName: "", sourceUrl: "", originalTitle: "", titleJa: "", summaryJa: "", countryCode: "JP", latitude: 0, longitude: 0, category: "general", publishedAt: null, fetchDate: "2026-02-23" }] });
+    useNewsStore.setState({
+      selectedCountryCode: "JP",
+      countryArticles: [
+        {
+          id: "c1",
+          rank: 1,
+          sourceName: "",
+          sourceUrl: "",
+          originalTitle: "",
+          titleJa: "",
+          summaryJa: "",
+          countryCode: "JP",
+          latitude: 0,
+          longitude: 0,
+          category: "general",
+          publishedAt: null,
+          fetchDate: "2026-02-23",
+        },
+      ],
+    });
     vi.mocked(getNewsByDate).mockResolvedValue(mockTodayNews);
 
     await useNewsStore.getState().fetchNewsByDate("2026-02-23");

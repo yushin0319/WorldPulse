@@ -1,13 +1,11 @@
-import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import WorldMap from "../WorldMap";
+import { describe, expect, it, vi } from "vitest";
 import type { NewsArticle } from "../../types/api";
+import WorldMap from "../WorldMap";
 
 // react-leaflet をモック（jsdomではLeafletのDOM操作が動かないため）
 vi.mock("react-leaflet", () => ({
-  MapContainer: ({
-    children,
-  }: React.PropsWithChildren) => (
+  MapContainer: ({ children }: React.PropsWithChildren) => (
     <div data-testid="map-container">{children}</div>
   ),
   TileLayer: () => <div data-testid="tile-layer" />,
@@ -73,7 +71,7 @@ describe("WorldMap", () => {
         articles={[]}
         selectedArticleId={null}
         onSelectArticle={() => {}}
-      />
+      />,
     );
     expect(screen.getByTestId("world-map")).toBeInTheDocument();
     expect(screen.getByTestId("map-container")).toBeInTheDocument();
@@ -85,7 +83,7 @@ describe("WorldMap", () => {
         articles={[]}
         selectedArticleId={null}
         onSelectArticle={() => {}}
-      />
+      />,
     );
     expect(screen.getByTestId("tile-layer")).toBeInTheDocument();
   });
@@ -100,7 +98,7 @@ describe("WorldMap", () => {
         articles={articles}
         selectedArticleId={null}
         onSelectArticle={() => {}}
-      />
+      />,
     );
     expect(screen.getByTestId("marker-1")).toBeInTheDocument();
     expect(screen.getByTestId("marker-2")).toBeInTheDocument();
@@ -113,7 +111,7 @@ describe("WorldMap", () => {
         articles={articles}
         selectedArticleId="sel-1"
         onSelectArticle={() => {}}
-      />
+      />,
     );
     expect(screen.getByTestId("marker-sel-1").dataset.selected).toBe("true");
   });
@@ -126,7 +124,7 @@ describe("WorldMap", () => {
         articles={articles}
         selectedArticleId={null}
         onSelectArticle={onSelect}
-      />
+      />,
     );
     screen.getByTestId("marker-click-1").click();
     expect(onSelect).toHaveBeenCalledWith("click-1");
@@ -140,7 +138,7 @@ describe("WorldMap", () => {
         articles={articles}
         selectedArticleId="toggle-1"
         onSelectArticle={onSelect}
-      />
+      />,
     );
     screen.getByTestId("marker-toggle-1").click();
     expect(onSelect).toHaveBeenCalledWith(null);
@@ -153,7 +151,7 @@ describe("WorldMap", () => {
         selectedArticleId={null}
         onSelectArticle={() => {}}
         onCountryClick={() => {}}
-      />
+      />,
     );
     expect(screen.getByTestId("country-layer")).toBeInTheDocument();
   });
@@ -166,7 +164,7 @@ describe("WorldMap", () => {
         selectedArticleId={null}
         onSelectArticle={() => {}}
         onCountryClick={onCountryClick}
-      />
+      />,
     );
     screen.getByTestId("country-layer").click();
     expect(onCountryClick).toHaveBeenCalledWith("JP");
@@ -180,8 +178,10 @@ describe("WorldMap", () => {
         onSelectArticle={() => {}}
         onCountryClick={() => {}}
         selectedCountryCode="US"
-      />
+      />,
     );
-    expect(screen.getByTestId("country-layer").dataset.selectedCountry).toBe("US");
+    expect(screen.getByTestId("country-layer").dataset.selectedCountry).toBe(
+      "US",
+    );
   });
 });

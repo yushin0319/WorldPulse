@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState, useCallback } from "react";
 import { AnimatePresence } from "framer-motion";
-import { useNewsStore } from "../stores/newsStore";
-import WorldMap from "../components/WorldMap";
-import NewsPanel from "../components/NewsPanel";
+import { useCallback, useEffect, useRef, useState } from "react";
 import CountryPanel from "../components/CountryPanel";
 import DateNavigator from "../components/DateNavigator";
+import NewsPanel from "../components/NewsPanel";
 import NewsTooltip from "../components/NewsTooltip";
+import WorldMap from "../components/WorldMap";
+import { useNewsStore } from "../stores/newsStore";
 
 export default function MapPage() {
   const {
@@ -51,7 +51,7 @@ export default function MapPage() {
         fetchCountryNews(article.countryCode);
       }
     },
-    [articles, selectCountry, fetchCountryNews]
+    [articles, selectCountry, fetchCountryNews],
   );
 
   // 国ポリゴンクリック→国パネルを開く
@@ -60,14 +60,14 @@ export default function MapPage() {
       selectCountry(countryCode);
       fetchCountryNews(countryCode);
     },
-    [selectCountry, fetchCountryNews]
+    [selectCountry, fetchCountryNews],
   );
 
   // 選択カードの位置を測定してツールチップの top を合わせる
   const measureCardPosition = useCallback(() => {
     if (!selectedArticleId || !panelRef.current) return;
     const card = panelRef.current.querySelector(
-      `[data-testid="news-card-${selectedArticleId}"]`
+      `[data-testid="news-card-${selectedArticleId}"]`,
     ) as HTMLElement | null;
     if (card) {
       setTooltipTop(card.offsetTop - panelRef.current.scrollTop);
@@ -109,7 +109,10 @@ export default function MapPage() {
         <div className="flex flex-col items-center bg-red-900/50 px-4 py-2 text-center text-sm text-red-300">
           <p>{error}</p>
           <button
-            onClick={() => fetchDate ? fetchNewsByDate(fetchDate) : fetchTodayNews()}
+            type="button"
+            onClick={() =>
+              fetchDate ? fetchNewsByDate(fetchDate) : fetchTodayNews()
+            }
             className="mt-2 rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-500"
           >
             再読み込み

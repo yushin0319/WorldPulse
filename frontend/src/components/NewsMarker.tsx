@@ -1,8 +1,8 @@
+import L from "leaflet";
 import { useMemo } from "react";
 import { Marker } from "react-leaflet";
-import L from "leaflet";
-import type { NewsArticle } from "../types/api";
 import { CATEGORY_HEX } from "../constants/categories";
+import type { NewsArticle } from "../types/api";
 
 function getMarkerSize(rank: number): number {
   if (rank <= 3) return 8;
@@ -66,7 +66,7 @@ export default function NewsMarker({
         </div>
       `,
       }),
-    [article.id, article.rank, article.category, isSelected, color, size, boxSize]
+    [article.id, article.rank, isSelected, color, size, boxSize],
   );
 
   return (

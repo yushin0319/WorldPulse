@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 import DateNavigator from "../DateNavigator";
 
 describe("DateNavigator", () => {
@@ -12,7 +12,7 @@ describe("DateNavigator", () => {
         currentDate={null}
         availableDates={dates}
         onDateChange={() => {}}
-      />
+      />,
     );
     expect(container.innerHTML).toBe("");
   });
@@ -23,7 +23,7 @@ describe("DateNavigator", () => {
         currentDate="2026-02-23"
         availableDates={dates}
         onDateChange={() => {}}
-      />
+      />,
     );
     expect(screen.getByTestId("date-navigator")).toBeInTheDocument();
     // フル表示（lg用）
@@ -38,7 +38,7 @@ describe("DateNavigator", () => {
         currentDate="2026-02-23"
         availableDates={dates}
         onDateChange={onChange}
-      />
+      />,
     );
 
     await user.click(screen.getByLabelText("前の日"));
@@ -53,7 +53,7 @@ describe("DateNavigator", () => {
         currentDate="2026-02-22"
         availableDates={dates}
         onDateChange={onChange}
-      />
+      />,
     );
 
     await user.click(screen.getByLabelText("次の日"));
@@ -66,7 +66,7 @@ describe("DateNavigator", () => {
         currentDate="2026-02-21"
         availableDates={dates}
         onDateChange={() => {}}
-      />
+      />,
     );
     expect(screen.getByLabelText("前の日")).toBeDisabled();
   });
@@ -77,7 +77,7 @@ describe("DateNavigator", () => {
         currentDate="2026-02-23"
         availableDates={dates}
         onDateChange={() => {}}
-      />
+      />,
     );
     expect(screen.getByLabelText("次の日")).toBeDisabled();
   });
@@ -88,7 +88,7 @@ describe("DateNavigator", () => {
         currentDate="2026-02-22"
         availableDates={dates}
         onDateChange={() => {}}
-      />
+      />,
     );
     expect(screen.getByText("↩今日")).toBeInTheDocument();
   });
@@ -99,7 +99,7 @@ describe("DateNavigator", () => {
         currentDate="2026-02-23"
         availableDates={dates}
         onDateChange={() => {}}
-      />
+      />,
     );
     const todayLabel = screen.getByText("今日");
     expect(todayLabel).toBeInTheDocument();
@@ -114,7 +114,7 @@ describe("DateNavigator", () => {
         currentDate="2026-02-21"
         availableDates={dates}
         onDateChange={onChange}
-      />
+      />,
     );
 
     await user.click(screen.getByText("↩今日"));
@@ -127,7 +127,7 @@ describe("DateNavigator", () => {
         currentDate="2026-02-23"
         availableDates={[]}
         onDateChange={() => {}}
-      />
+      />,
     );
     expect(screen.getByLabelText("前の日")).toBeDisabled();
     expect(screen.getByLabelText("次の日")).toBeDisabled();
@@ -141,7 +141,7 @@ describe("DateNavigator", () => {
         currentDate="2026-01-01"
         availableDates={dates}
         onDateChange={onChange}
-      />
+      />,
     );
     // indexOf=-1 なので hasPrev=false, hasNext=false
     expect(screen.getByLabelText("前の日")).toBeDisabled();
@@ -159,7 +159,7 @@ describe("DateNavigator", () => {
         currentDate="2026-02-23"
         availableDates={["2026-02-23"]}
         onDateChange={() => {}}
-      />
+      />,
     );
     expect(screen.getByLabelText("前の日")).toBeDisabled();
     expect(screen.getByLabelText("次の日")).toBeDisabled();

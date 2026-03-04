@@ -1,4 +1,8 @@
-import type { DailyNews, AvailableDates, CountryNewsResponse } from "../types/api";
+import type {
+  AvailableDates,
+  CountryNewsResponse,
+  DailyNews,
+} from "../types/api";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8787";
 
@@ -22,6 +26,8 @@ export async function getAvailableDates(): Promise<AvailableDates> {
   return fetchJson<AvailableDates>("/api/news/dates");
 }
 
-export async function getNewsByCountry(code: string): Promise<CountryNewsResponse> {
+export async function getNewsByCountry(
+  code: string,
+): Promise<CountryNewsResponse> {
   return fetchJson<CountryNewsResponse>(`/api/news/country/${code}`);
 }

@@ -1,6 +1,6 @@
-import type { CountryNewsArticle } from "../types/api";
-import { getCountryFlagUrl, getCountryInfo } from "../constants/countries";
 import { CATEGORY_BG } from "../constants/categories";
+import { getCountryFlagUrl, getCountryInfo } from "../constants/countries";
+import type { CountryNewsArticle } from "../types/api";
 
 interface CountryPanelProps {
   countryCode: string;
@@ -25,7 +25,7 @@ export default function CountryPanel({
       acc[key].push(article);
       return acc;
     },
-    {}
+    {},
   );
   const dateKeys = Object.keys(grouped);
 
@@ -37,6 +37,7 @@ export default function CountryPanel({
         data-testid="country-panel-header"
       >
         <button
+          type="button"
           onClick={onBack}
           className="text-sm text-gray-400 hover:text-gray-200"
           data-testid="country-panel-back"
@@ -84,9 +85,7 @@ export default function CountryPanel({
                     className="border-b border-gray-800 px-4 py-3"
                   >
                     <div className="mb-1 flex items-center gap-2">
-                      <span
-                        className={`h-2 w-2 rounded-full ${colorClass}`}
-                      />
+                      <span className={`h-2 w-2 rounded-full ${colorClass}`} />
                       <span className="text-xs text-gray-500">
                         {article.sourceName}
                       </span>
