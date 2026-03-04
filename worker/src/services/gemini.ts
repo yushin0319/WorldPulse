@@ -1,5 +1,9 @@
+import type {
+  GeminiSelectedArticle,
+  PreviousArticle,
+  RssArticle,
+} from "../types";
 import { VALID_CATEGORIES } from "../types";
-import type { RssArticle, GeminiSelectedArticle, PreviousArticle } from "../types";
 
 // カテゴリの O(1) 判定用 Set（モジュールレベルで一度だけ生成）
 const VALID_CATEGORIES_SET = new Set<string>(VALID_CATEGORIES);
@@ -12,28 +16,30 @@ const MAX_ARTICLES_FOR_PROMPT = 100;
 
 // プロンプトインジェクション対策: title/snippetのサニタイズ
 export function sanitizeForPrompt(text: string): string {
-  return text
-    // 改行を空白に正規化
-    .replace(/[\r\n]+/g, " ")
-    // プロンプト制御キーワードを除去（大文字小文字無視）
-    .replace(/\b(RULES|OUTPUT|ARTICLES|PREVIOUSLY COVERED):/gi, "")
-    // 区切り線を除去
-    .replace(/---+/g, "")
-    // 先頭のインデックス偽装を除去（"[0] "、"[99] " 等）
-    .replace(/^\[\d+\]\s*/, "")
-    .trim();
+  return (
+    text
+      // 改行を空白に正規化
+      .replace(/[\r\n]+/g, " ")
+      // プロンプト制御キーワードを除去（大文字小文字無視）
+      .replace(/\b(RULES|OUTPUT|ARTICLES|PREVIOUSLY COVERED):/gi, "")
+      // 区切り線を除去
+      .replace(/---+/g, "")
+      // 先頭のインデックス偽装を除去（"[0] "、"[99] " 等）
+      .replace(/^\[\d+\]\s*/, "")
+      .trim()
+  );
 }
 
 // Geminiに送るプロンプトを構築
 export function buildPrompt(
   articles: RssArticle[],
-  previousArticles?: PreviousArticle[]
+  previousArticles?: PreviousArticle[],
 ): string {
   const limited = articles.slice(0, MAX_ARTICLES_FOR_PROMPT);
   const articleList = limited
     .map(
       (a, i) =>
-        `[${i}] ${a.source} | ${sanitizeForPrompt(a.title)} | ${sanitizeForPrompt(a.snippet)}`
+        `[${i}] ${a.source} | ${sanitizeForPrompt(a.title)} | ${sanitizeForPrompt(a.snippet)}`,
     )
     .join("\n");
 
@@ -82,7 +88,7 @@ ${articleList}`;
 // Geminiレスポンスをパース（indexバリデーション + 型・範囲チェック付き）
 export function parseGeminiResponse(
   text: string,
-  articleCount: number
+  articleCount: number,
 ): GeminiSelectedArticle[] {
   // マークダウンコードブロックを除去（大文字・他形式も対応）
   const cleaned = text
@@ -120,18 +126,20 @@ export function parseGeminiResponse(
           typeof obj.category === "string"
         );
       })
-      .map((item): GeminiSelectedArticle => ({
-        index: item.index as number,
-        country_code: item.country_code as string,
-        lat: item.lat as number,
-        lng: item.lng as number,
-        title_ja: item.title_ja as string,
-        summary_ja: item.summary_ja as string,
-        // categoryを正規化（未知の値はgeneralに）
-        category: VALID_CATEGORIES_SET.has(item.category as string)
-          ? (item.category as string)
-          : "general",
-      }))
+      .map(
+        (item): GeminiSelectedArticle => ({
+          index: item.index as number,
+          country_code: item.country_code as string,
+          lat: item.lat as number,
+          lng: item.lng as number,
+          title_ja: item.title_ja as string,
+          summary_ja: item.summary_ja as string,
+          // categoryを正規化（未知の値はgeneralに）
+          category: VALID_CATEGORIES_SET.has(item.category as string)
+            ? (item.category as string)
+            : "general",
+        }),
+      )
       .slice(0, 10);
   } catch {
     console.error("Failed to parse Gemini response:", text.slice(0, 200));
@@ -143,7 +151,7 @@ export function parseGeminiResponse(
 async function callGeminiApi(
   prompt: string,
   apiKey: string,
-  timeoutMs: number
+  timeoutMs: number,
 ): Promise<string> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -167,7 +175,9 @@ async function callGeminiApi(
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Gemini API error (${response.status}): ${errorText.slice(0, 200)}`);
+      throw new Error(
+        `Gemini API error (${response.status}): ${errorText.slice(0, 200)}`,
+      );
     }
 
     const data = (await response.json()) as {
@@ -185,7 +195,7 @@ async function callGeminiApi(
 export async function selectTopNews(
   articles: RssArticle[],
   apiKey: string,
-  previousArticles?: PreviousArticle[]
+  previousArticles?: PreviousArticle[],
 ): Promise<GeminiSelectedArticle[]> {
   const limited = articles.slice(0, MAX_ARTICLES_FOR_PROMPT);
   const prompt = buildPrompt(limited, previousArticles);
@@ -195,9 +205,16 @@ export async function selectTopNews(
     const text = await callGeminiApi(prompt, apiKey, 180_000);
     const results = parseGeminiResponse(text, limited.length);
     if (results.length > 0) return results;
-    console.error("Gemini API 1st attempt: empty results", { attempt: 1, retrying: true });
+    console.error("Gemini API 1st attempt: empty results", {
+      attempt: 1,
+      retrying: true,
+    });
   } catch (e) {
-    console.error("Gemini API 1st attempt failed", { attempt: 1, retrying: true, error: e instanceof Error ? e.message : String(e) });
+    console.error("Gemini API 1st attempt failed", {
+      attempt: 1,
+      retrying: true,
+      error: e instanceof Error ? e.message : String(e),
+    });
   }
 
   // 2回目（リトライ）: 180秒タイムアウト
@@ -205,7 +222,10 @@ export async function selectTopNews(
     const text = await callGeminiApi(prompt, apiKey, 180_000);
     return parseGeminiResponse(text, limited.length);
   } catch (e) {
-    console.error("Gemini API 2nd attempt failed:", e instanceof Error ? e.message : e);
+    console.error(
+      "Gemini API 2nd attempt failed:",
+      e instanceof Error ? e.message : e,
+    );
     throw e;
   }
 }

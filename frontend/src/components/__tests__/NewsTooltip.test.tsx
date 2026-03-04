@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import NewsTooltip from "../NewsTooltip";
+import { describe, expect, it, vi } from "vitest";
 import type { NewsArticle } from "../../types/api";
+import NewsTooltip from "../NewsTooltip";
 
 const mockArticle: NewsArticle = {
   id: "1",
@@ -11,7 +11,8 @@ const mockArticle: NewsArticle = {
   sourceUrl: "https://reuters.com/article/1",
   originalTitle: "Test Article",
   titleJa: "テストタイトル",
-  summaryJa: "これはテスト要約です。重要なニュースの概要を200文字以内で表示します。",
+  summaryJa:
+    "これはテスト要約です。重要なニュースの概要を200文字以内で表示します。",
   countryCode: "US",
   latitude: 38.9,
   longitude: -77.0,
@@ -27,9 +28,7 @@ describe("NewsTooltip", () => {
     expect(screen.getByText(/^#3/)).toBeInTheDocument();
     expect(screen.getByText(/Reuters/)).toBeInTheDocument();
     expect(screen.getByText("テストタイトル")).toBeInTheDocument();
-    expect(
-      screen.getByText(/これはテスト要約です/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/これはテスト要約です/)).toBeInTheDocument();
   });
 
   it("閉じるボタンでonCloseが呼ばれる", async () => {
@@ -67,10 +66,7 @@ describe("NewsTooltip", () => {
     render(<NewsTooltip article={mockArticle} onClose={() => {}} />);
     const flag = screen.getByAltText("アメリカ");
     expect(flag).toBeInTheDocument();
-    expect(flag).toHaveAttribute(
-      "src",
-      expect.stringContaining("/us.")
-    );
+    expect(flag).toHaveAttribute("src", expect.stringContaining("/us."));
   });
 
   it("EscキーでonCloseが呼ばれる", async () => {

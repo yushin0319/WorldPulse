@@ -1,11 +1,11 @@
-import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import CountryPanel from "../CountryPanel";
+import { describe, expect, it, vi } from "vitest";
 import type { CountryNewsArticle } from "../../types/api";
+import CountryPanel from "../CountryPanel";
 
 const mockArticle = (
-  overrides: Partial<CountryNewsArticle> = {}
+  overrides: Partial<CountryNewsArticle> = {},
 ): CountryNewsArticle => ({
   id: "1",
   rank: 1,
@@ -31,7 +31,7 @@ describe("CountryPanel", () => {
         articles={[]}
         isLoading={false}
         onBack={vi.fn()}
-      />
+      />,
     );
     expect(screen.getByText(/日本/)).toBeInTheDocument();
     expect(screen.getByText(/東京/)).toBeInTheDocument();
@@ -50,7 +50,7 @@ describe("CountryPanel", () => {
         articles={[]}
         isLoading={false}
         onBack={onBack}
-      />
+      />,
     );
 
     await user.click(screen.getByTestId("country-panel-back"));
@@ -68,7 +68,7 @@ describe("CountryPanel", () => {
         articles={articles}
         isLoading={false}
         onBack={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByText("2026-02-24")).toBeInTheDocument();
@@ -84,7 +84,7 @@ describe("CountryPanel", () => {
         articles={[]}
         isLoading={true}
         onBack={vi.fn()}
-      />
+      />,
     );
     expect(screen.getByTestId("country-panel-loading")).toBeInTheDocument();
   });
@@ -96,7 +96,7 @@ describe("CountryPanel", () => {
         articles={[]}
         isLoading={false}
         onBack={vi.fn()}
-      />
+      />,
     );
     expect(screen.getByTestId("country-panel-empty")).toBeInTheDocument();
   });
@@ -108,7 +108,7 @@ describe("CountryPanel", () => {
         articles={[]}
         isLoading={false}
         onBack={vi.fn()}
-      />
+      />,
     );
     expect(screen.getByText(/ZZ/)).toBeInTheDocument();
   });
@@ -121,7 +121,7 @@ describe("CountryPanel", () => {
         articles={articles}
         isLoading={false}
         onBack={vi.fn()}
-      />
+      />,
     );
 
     const link = screen.getByText("元記事を読む →");
@@ -138,7 +138,7 @@ describe("CountryPanel", () => {
         articles={articles}
         isLoading={false}
         onBack={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.queryByText("元記事を読む →")).not.toBeInTheDocument();

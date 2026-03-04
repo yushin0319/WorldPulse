@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import MapPage from "../MapPage";
 
 // APIモック
@@ -23,22 +23,20 @@ vi.mock("react-leaflet", () => ({
 
 // CountryLayer モック
 vi.mock("../../components/CountryLayer", () => ({
-  default: ({
-    onCountryClick,
-  }: {
-    onCountryClick: (code: string) => void;
-  }) => (
-    <div
-      data-testid="country-layer"
-      onClick={() => onCountryClick("DE")}
-    />
+  default: ({ onCountryClick }: { onCountryClick: (code: string) => void }) => (
+    <div data-testid="country-layer" onClick={() => onCountryClick("DE")} />
   ),
 }));
 
 // leaflet CSS モック
 vi.mock("leaflet/dist/leaflet.css", () => ({}));
 
-import { getTodayNews, getNewsByDate, getAvailableDates, getNewsByCountry } from "../../services/api";
+import {
+  getAvailableDates,
+  getNewsByCountry,
+  getNewsByDate,
+  getTodayNews,
+} from "../../services/api";
 import { useNewsStore } from "../../stores/newsStore";
 
 const mockArticles = [
@@ -115,7 +113,11 @@ describe("MapPage", () => {
     render(<MapPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("ニュースの取得に失敗しました。時間をおいて再試行してください。")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "ニュースの取得に失敗しました。時間をおいて再試行してください。",
+        ),
+      ).toBeInTheDocument();
     });
   });
 
@@ -171,7 +173,9 @@ describe("MapPage", () => {
     render(<MapPage />);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "再読み込み" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "再読み込み" }),
+      ).toBeInTheDocument();
     });
   });
 
@@ -183,7 +187,9 @@ describe("MapPage", () => {
     render(<MapPage />);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "再読み込み" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "再読み込み" }),
+      ).toBeInTheDocument();
     });
 
     vi.mocked(getTodayNews).mockResolvedValue({
@@ -218,7 +224,9 @@ describe("MapPage", () => {
     useNewsStore.getState().fetchNewsByDate("2026-02-20");
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "再読み込み" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "再読み込み" }),
+      ).toBeInTheDocument();
     });
 
     vi.mocked(getNewsByDate).mockResolvedValue({
@@ -242,9 +250,7 @@ describe("MapPage", () => {
     vi.mocked(getAvailableDates).mockResolvedValue({ dates: ["2026-02-23"] });
     vi.mocked(getNewsByCountry).mockResolvedValue({
       countryCode: "JP",
-      articles: [
-        { ...mockArticles[0], fetchDate: "2026-02-23" },
-      ],
+      articles: [{ ...mockArticles[0], fetchDate: "2026-02-23" }],
     });
 
     render(<MapPage />);

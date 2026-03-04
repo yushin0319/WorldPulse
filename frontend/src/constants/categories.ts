@@ -1,6 +1,7 @@
 // NewsCategory / VALID_CATEGORIES は shared/types.ts が単一定義源。
-export { VALID_CATEGORIES } from "../../../shared/types";
+
 export type { NewsCategory } from "../../../shared/types";
+export { VALID_CATEGORIES } from "../../../shared/types";
 
 // HEX値（マーカー用）
 export const CATEGORY_HEX: Record<string, string> = {

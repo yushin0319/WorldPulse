@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { getTodayNews, getNewsByDate, getAvailableDates } from "../api";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { getAvailableDates, getNewsByDate, getTodayNews } from "../api";
 
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
@@ -17,7 +17,7 @@ describe("API client", () => {
 
     const result = await getTodayNews();
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/news/today")
+      expect.stringContaining("/api/news/today"),
     );
     expect(result.fetchDate).toBe("2026-02-23");
   });
@@ -30,7 +30,7 @@ describe("API client", () => {
 
     await getNewsByDate("2026-02-22");
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/news/2026-02-22")
+      expect.stringContaining("/api/news/2026-02-22"),
     );
   });
 
@@ -61,7 +61,9 @@ describe("API client", () => {
       statusText: "Internal Server Error",
     });
 
-    await expect(getTodayNews()).rejects.toThrow("API error: 500 Internal Server Error");
+    await expect(getTodayNews()).rejects.toThrow(
+      "API error: 500 Internal Server Error",
+    );
   });
 
   it("ネットワーク切断時（fetch throw）にErrorが伝播する", async () => {

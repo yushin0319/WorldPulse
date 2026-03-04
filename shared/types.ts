@@ -2,8 +2,16 @@
 // Both worker and frontend import from this file.
 
 export const VALID_CATEGORIES = [
-  "politics", "economy", "conflict", "science", "disaster",
-  "health", "environment", "tech", "culture", "general",
+  "politics",
+  "economy",
+  "conflict",
+  "science",
+  "disaster",
+  "health",
+  "environment",
+  "tech",
+  "culture",
+  "general",
 ] as const;
 
 export type NewsCategory = (typeof VALID_CATEGORIES)[number];

@@ -1,23 +1,27 @@
 import type {
+  AvailableDatesResponse,
+  CountryNewsResponse,
   DailyNewsResponse,
+  GeminiSelectedArticle,
   NewsArticle,
   NewsCategory,
-  AvailableDatesResponse,
-  RssArticle,
-  GeminiSelectedArticle,
   PreviousArticle,
-  CountryNewsResponse,
+  RssArticle,
 } from "../types";
 
 // 今日（or最新日）のニュース取得
 export async function getTodayNews(
-  db: D1Database
+  db: D1Database,
 ): Promise<DailyNewsResponse | null> {
   const row = await db
     .prepare(
-      "SELECT id, fetch_date, total_articles_fetched FROM daily_news ORDER BY fetch_date DESC LIMIT 1"
+      "SELECT id, fetch_date, total_articles_fetched FROM daily_news ORDER BY fetch_date DESC LIMIT 1",
     )
-    .first<{ id: string; fetch_date: string; total_articles_fetched: number }>();
+    .first<{
+      id: string;
+      fetch_date: string;
+      total_articles_fetched: number;
+    }>();
 
   if (!row) return null;
 
@@ -32,14 +36,18 @@ export async function getTodayNews(
 // 指定日のニュース取得
 export async function getNewsByDate(
   db: D1Database,
-  date: string
+  date: string,
 ): Promise<DailyNewsResponse | null> {
   const row = await db
     .prepare(
-      "SELECT id, fetch_date, total_articles_fetched FROM daily_news WHERE fetch_date = ?"
+      "SELECT id, fetch_date, total_articles_fetched FROM daily_news WHERE fetch_date = ?",
     )
     .bind(date)
-    .first<{ id: string; fetch_date: string; total_articles_fetched: number }>();
+    .first<{
+      id: string;
+      fetch_date: string;
+      total_articles_fetched: number;
+    }>();
 
   if (!row) return null;
 
@@ -53,11 +61,11 @@ export async function getNewsByDate(
 
 // データ存在日一覧（直近30日）
 export async function getAvailableDates(
-  db: D1Database
+  db: D1Database,
 ): Promise<AvailableDatesResponse> {
   const { results } = await db
     .prepare(
-      "SELECT fetch_date FROM daily_news ORDER BY fetch_date DESC LIMIT 30"
+      "SELECT fetch_date FROM daily_news ORDER BY fetch_date DESC LIMIT 30",
     )
     .all<{ fetch_date: string }>();
 
@@ -86,7 +94,7 @@ function sanitizeUrl(url: string): string {
 export async function saveDailyNews(
   db: D1Database,
   allArticles: RssArticle[],
-  selected: GeminiSelectedArticle[]
+  selected: GeminiSelectedArticle[],
 ): Promise<void> {
   const today = getJstDateString();
   const dailyId = crypto.randomUUID();
@@ -94,7 +102,7 @@ export async function saveDailyNews(
   // INSERT OR IGNORE — fetch_dateのUNIQUE制約違反時はアトミックにスキップ
   const dailyResult = await db
     .prepare(
-      "INSERT OR IGNORE INTO daily_news (id, fetch_date, total_articles_fetched) VALUES (?, ?, ?)"
+      "INSERT OR IGNORE INTO daily_news (id, fetch_date, total_articles_fetched) VALUES (?, ?, ?)",
     )
     .bind(dailyId, today, allArticles.length)
     .run();
@@ -109,7 +117,7 @@ export async function saveDailyNews(
 
   const articleStmt = db.prepare(
     `INSERT INTO news_articles (id, daily_news_id, rank, source_name, source_url, original_title, original_snippet, title_ja, summary_ja, country_code, latitude, longitude, category, published_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
 
   for (let i = 0; i < selected.length; i++) {
@@ -132,8 +140,8 @@ export async function saveDailyNews(
         item.lat,
         item.lng,
         item.category.toLowerCase(),
-        original.publishedAt ?? null
-      )
+        original.publishedAt ?? null,
+      ),
     );
   }
 
@@ -151,7 +159,7 @@ interface RecentArticleRow {
 
 export async function getRecentArticles(
   db: D1Database,
-  days: number = 3
+  days: number = 3,
 ): Promise<PreviousArticle[]> {
   const today = getJstDateString();
 
@@ -162,7 +170,7 @@ export async function getRecentArticles(
        JOIN daily_news dn ON na.daily_news_id = dn.id
        WHERE dn.fetch_date < ?
        ORDER BY dn.fetch_date DESC
-       LIMIT ?`
+       LIMIT ?`,
     )
     .bind(today, days * 10)
     .all<RecentArticleRow>();
@@ -181,7 +189,7 @@ interface CountryArticleRow extends NewsArticleRow {
 
 export async function getNewsByCountry(
   db: D1Database,
-  countryCode: string
+  countryCode: string,
 ): Promise<CountryNewsResponse> {
   const { results } = await db
     .prepare(
@@ -191,14 +199,17 @@ export async function getNewsByCountry(
        FROM news_articles na
        JOIN daily_news dn ON na.daily_news_id = dn.id
        WHERE na.country_code = ?
-       ORDER BY dn.fetch_date DESC, na.rank ASC LIMIT 100`
+       ORDER BY dn.fetch_date DESC, na.rank ASC LIMIT 100`,
     )
     .bind(countryCode)
     .all<CountryArticleRow>();
 
   return {
     countryCode,
-    articles: results.map((r) => ({ ...rowToArticle(r), fetchDate: r.fetch_date })),
+    articles: results.map((r) => ({
+      ...rowToArticle(r),
+      fetchDate: r.fetch_date,
+    })),
   };
 }
 
@@ -238,14 +249,14 @@ function rowToArticle(r: NewsArticleRow): NewsArticle {
 // ヘルパー: daily_news_id で記事一覧取得（必要カラムのみ）
 async function getArticlesByDailyId(
   db: D1Database,
-  dailyId: string
+  dailyId: string,
 ): Promise<NewsArticle[]> {
   const { results } = await db
     .prepare(
       `SELECT id, rank, source_name, source_url, original_title,
               title_ja, summary_ja, country_code, latitude, longitude,
               category, published_at
-       FROM news_articles WHERE daily_news_id = ? ORDER BY rank ASC`
+       FROM news_articles WHERE daily_news_id = ? ORDER BY rank ASC`,
     )
     .bind(dailyId)
     .all<NewsArticleRow>();

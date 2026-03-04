@@ -1,11 +1,11 @@
 import { Hono } from "hono";
-import type { Env } from "../types";
 import {
-  getTodayNews,
-  getNewsByDate,
   getAvailableDates,
   getNewsByCountry,
+  getNewsByDate,
+  getTodayNews,
 } from "../services/news";
+import type { Env } from "../types";
 
 export const newsRoutes = new Hono<{ Bindings: Env }>();
 
@@ -34,7 +34,13 @@ newsRoutes.get("/dates", async (c) => {
 newsRoutes.get("/country/:code", async (c) => {
   const code = c.req.param("code");
   if (!/^[A-Z]{2}$/.test(code)) {
-    return c.json({ error: "Invalid country code. Use 2 uppercase letters (ISO 3166-1 alpha-2)" }, 400);
+    return c.json(
+      {
+        error:
+          "Invalid country code. Use 2 uppercase letters (ISO 3166-1 alpha-2)",
+      },
+      400,
+    );
   }
   const result = await getNewsByCountry(c.env.DB, code);
   c.header("Cache-Control", CACHE_MEDIUM);

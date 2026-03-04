@@ -212,7 +212,10 @@ export const COUNTRY_DATA: Record<string, CountryInfo> = {
   GD: { nameJa: "グレナダ", capitalJa: "セントジョージズ" },
   KN: { nameJa: "セントクリストファー・ネイビス", capitalJa: "バセテール" },
   LC: { nameJa: "セントルシア", capitalJa: "カストリーズ" },
-  VC: { nameJa: "セントビンセント・グレナディーン", capitalJa: "キングスタウン" },
+  VC: {
+    nameJa: "セントビンセント・グレナディーン",
+    capitalJa: "キングスタウン",
+  },
 
   // ── Others（その他）──
   GL: { nameJa: "グリーンランド", capitalJa: "ヌーク" },
@@ -225,8 +228,10 @@ export function getCountryFlagUrl(countryCode: string): string {
 
 // 安全に国情報を取得（未登録の場合はコードをそのまま表示）
 export function getCountryInfo(countryCode: string): CountryInfo {
-  return COUNTRY_DATA[countryCode] ?? {
-    nameJa: countryCode,
-    capitalJa: "---",
-  };
+  return (
+    COUNTRY_DATA[countryCode] ?? {
+      nameJa: countryCode,
+      capitalJa: "---",
+    }
+  );
 }

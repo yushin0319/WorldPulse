@@ -1,7 +1,7 @@
-import { useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import type { NewsArticle } from "../types/api";
+import { useEffect, useRef } from "react";
 import { getCountryFlagUrl, getCountryInfo } from "../constants/countries";
+import type { NewsArticle } from "../types/api";
 
 interface NewsTooltipProps {
   article: NewsArticle;
@@ -47,6 +47,7 @@ export default function NewsTooltip({ article, onClose }: NewsTooltipProps) {
           loading="lazy"
         />
         <button
+          type="button"
           onClick={onClose}
           className="flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:text-gray-200"
           aria-label="閉じる"

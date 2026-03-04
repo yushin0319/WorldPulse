@@ -1,6 +1,6 @@
-import type { NewsArticle } from "../types/api";
 import { CATEGORY_BG } from "../constants/categories";
 import { getCountryFlagUrl, getCountryInfo } from "../constants/countries";
+import type { NewsArticle } from "../types/api";
 
 interface NewsPanelProps {
   articles: NewsArticle[];
@@ -28,15 +28,13 @@ export default function NewsPanel({
     <div className="overflow-y-auto" data-testid="news-panel">
       {articles.map((article) => {
         const isSelected = selectedArticleId === article.id;
-        const colorClass =
-          CATEGORY_BG[article.category] ?? CATEGORY_BG.general;
+        const colorClass = CATEGORY_BG[article.category] ?? CATEGORY_BG.general;
 
         return (
           <button
+            type="button"
             key={article.id}
-            onClick={() =>
-              onSelectArticle(isSelected ? null : article.id)
-            }
+            onClick={() => onSelectArticle(isSelected ? null : article.id)}
             aria-pressed={isSelected}
             className={`w-full border-b border-gray-800 px-4 py-3 text-left transition-colors hover:bg-[#1a2035] ${
               isSelected ? "bg-[#1a2035]" : ""
@@ -50,9 +48,7 @@ export default function NewsPanel({
               <span className="text-xs text-gray-500">
                 {getCountryInfo(article.countryCode).nameJa}
               </span>
-              <span
-                className={`h-2 w-2 rounded-full ${colorClass}`}
-              />
+              <span className={`h-2 w-2 rounded-full ${colorClass}`} />
               <span className="text-xs text-gray-500">
                 {article.sourceName}
               </span>

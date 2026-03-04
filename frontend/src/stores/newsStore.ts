@@ -1,6 +1,11 @@
 import { create } from "zustand";
-import type { NewsArticle, CountryNewsArticle } from "../types/api";
-import { getTodayNews, getNewsByDate, getAvailableDates, getNewsByCountry } from "../services/api";
+import {
+  getAvailableDates,
+  getNewsByCountry,
+  getNewsByDate,
+  getTodayNews,
+} from "../services/api";
+import type { CountryNewsArticle, NewsArticle } from "../types/api";
 
 interface NewsState {
   articles: NewsArticle[];
@@ -65,7 +70,13 @@ export const useNewsStore = create<NewsState>((set) => ({
 
   fetchNewsByDate: async (date: string) => {
     // 日付変更時はisFetching（全画面スピナーではなくオーバーレイ）+ 国パネルリセット
-    set({ isFetching: true, error: null, selectedArticleId: null, selectedCountryCode: null, countryArticles: [] });
+    set({
+      isFetching: true,
+      error: null,
+      selectedArticleId: null,
+      selectedCountryCode: null,
+      countryArticles: [],
+    });
     try {
       const data = await getNewsByDate(date);
       set({

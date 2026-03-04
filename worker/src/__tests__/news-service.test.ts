@@ -1,27 +1,24 @@
+import { env } from "cloudflare:test";
+import { beforeEach, describe, expect, it } from "vitest";
 import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-} from "vitest";
-import {
-  env,
-} from "cloudflare:test";
-import {
-  saveDailyNews,
-  getTodayNews,
-  getNewsByDate,
   getAvailableDates,
   getJstDateString,
-  getRecentArticles,
   getNewsByCountry,
+  getNewsByDate,
+  getRecentArticles,
+  getTodayNews,
+  saveDailyNews,
 } from "../services/news";
-import type { RssArticle, GeminiSelectedArticle } from "../types";
+import type { GeminiSelectedArticle, RssArticle } from "../types";
 
 // テスト前にスキーマを適用
 async function initDb() {
-  await env.DB.exec("CREATE TABLE IF NOT EXISTS daily_news (id TEXT PRIMARY KEY, fetch_date TEXT NOT NULL UNIQUE, total_articles_fetched INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT (datetime('now')))");
-  await env.DB.exec("CREATE TABLE IF NOT EXISTS news_articles (id TEXT PRIMARY KEY, daily_news_id TEXT NOT NULL REFERENCES daily_news(id) ON DELETE CASCADE, rank INTEGER NOT NULL CHECK (rank >= 1 AND rank <= 10), source_name TEXT NOT NULL, source_url TEXT NOT NULL, original_title TEXT NOT NULL, original_snippet TEXT NOT NULL, title_ja TEXT NOT NULL, summary_ja TEXT NOT NULL, country_code TEXT NOT NULL, latitude REAL NOT NULL, longitude REAL NOT NULL, category TEXT NOT NULL DEFAULT 'general', published_at TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), UNIQUE (daily_news_id, rank))");
+  await env.DB.exec(
+    "CREATE TABLE IF NOT EXISTS daily_news (id TEXT PRIMARY KEY, fetch_date TEXT NOT NULL UNIQUE, total_articles_fetched INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT (datetime('now')))",
+  );
+  await env.DB.exec(
+    "CREATE TABLE IF NOT EXISTS news_articles (id TEXT PRIMARY KEY, daily_news_id TEXT NOT NULL REFERENCES daily_news(id) ON DELETE CASCADE, rank INTEGER NOT NULL CHECK (rank >= 1 AND rank <= 10), source_name TEXT NOT NULL, source_url TEXT NOT NULL, original_title TEXT NOT NULL, original_snippet TEXT NOT NULL, title_ja TEXT NOT NULL, summary_ja TEXT NOT NULL, country_code TEXT NOT NULL, latitude REAL NOT NULL, longitude REAL NOT NULL, category TEXT NOT NULL DEFAULT 'general', published_at TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), UNIQUE (daily_news_id, rank))",
+  );
 }
 
 // テストデータ
@@ -101,12 +98,12 @@ describe("D1 ニュースサービス", () => {
 
     const result = await getTodayNews(env.DB);
     expect(result).not.toBeNull();
-    expect(result!.totalArticlesFetched).toBe(2);
-    expect(result!.articles).toHaveLength(2);
-    expect(result!.articles[0].titleJa).toBe("テスト記事1");
-    expect(result!.articles[0].countryCode).toBe("JP");
-    expect(result!.articles[1].titleJa).toBe("テスト記事2");
-    expect(result!.articles[1].rank).toBe(2);
+    expect(result?.totalArticlesFetched).toBe(2);
+    expect(result?.articles).toHaveLength(2);
+    expect(result?.articles[0].titleJa).toBe("テスト記事1");
+    expect(result?.articles[0].countryCode).toBe("JP");
+    expect(result?.articles[1].titleJa).toBe("テスト記事2");
+    expect(result?.articles[1].rank).toBe(2);
   });
 
   it("getNewsByDate: 指定日のニュースを取得できる", async () => {
@@ -115,7 +112,7 @@ describe("D1 ニュースサービス", () => {
 
     const result = await getNewsByDate(env.DB, today);
     expect(result).not.toBeNull();
-    expect(result!.articles).toHaveLength(2);
+    expect(result?.articles).toHaveLength(2);
   });
 
   it("getNewsByDate: 存在しない日付はnullを返す", async () => {
@@ -149,7 +146,7 @@ describe("D1 ニュースサービス", () => {
     const result = await getTodayNews(env.DB);
     expect(result).not.toBeNull();
     // スキップされているので1日分のみ
-    expect(result!.articles).toHaveLength(2);
+    expect(result?.articles).toHaveLength(2);
   });
 
   it("saveDailyNews: selectedのindexが範囲外の場合はスキップされる", async () => {
@@ -178,8 +175,8 @@ describe("D1 ニュースサービス", () => {
     const result = await getTodayNews(env.DB);
     expect(result).not.toBeNull();
     // index=99の記事はスキップされ1件のみ
-    expect(result!.articles).toHaveLength(1);
-    expect(result!.articles[0].titleJa).toBe("正常");
+    expect(result?.articles).toHaveLength(1);
+    expect(result?.articles[0].titleJa).toBe("正常");
   });
 
   it("saveDailyNews: 不正なURLは空文字列にサニタイズされる", async () => {
@@ -207,7 +204,7 @@ describe("D1 ニュースサービス", () => {
 
     const result = await getTodayNews(env.DB);
     expect(result).not.toBeNull();
-    expect(result!.articles[0].sourceUrl).toBe("");
+    expect(result?.articles[0].sourceUrl).toBe("");
   });
 
   it("saveDailyNews: selected配列が空の場合も正常に動作する", async () => {
@@ -215,29 +212,36 @@ describe("D1 ニュースサービス", () => {
 
     const result = await getTodayNews(env.DB);
     expect(result).not.toBeNull();
-    expect(result!.totalArticlesFetched).toBe(2);
-    expect(result!.articles).toHaveLength(0);
+    expect(result?.totalArticlesFetched).toBe(2);
+    expect(result?.articles).toHaveLength(0);
   });
 });
 
 // ヘルパー: 指定日付でテストデータを直接INSERT
 async function insertDayWithArticles(
   date: string,
-  articles: { title: string; titleJa: string; countryCode?: string }[]
+  articles: { title: string; titleJa: string; countryCode?: string }[],
 ) {
   const dailyId = crypto.randomUUID();
   await env.DB.prepare(
-    "INSERT INTO daily_news (id, fetch_date, total_articles_fetched) VALUES (?, ?, ?)"
-  ).bind(dailyId, date, articles.length).run();
+    "INSERT INTO daily_news (id, fetch_date, total_articles_fetched) VALUES (?, ?, ?)",
+  )
+    .bind(dailyId, date, articles.length)
+    .run();
   for (let i = 0; i < articles.length; i++) {
     await env.DB.prepare(
       `INSERT INTO news_articles (id, daily_news_id, rank, source_name, source_url, original_title, original_snippet, title_ja, summary_ja, country_code, latitude, longitude, category)
-       VALUES (?, ?, ?, 'BBC', 'http://bbc.com', ?, 'snippet', ?, '要約', ?, 35.0, 139.0, 'general')`
-    ).bind(
-      crypto.randomUUID(), dailyId, i + 1,
-      articles[i].title, articles[i].titleJa,
-      articles[i].countryCode ?? "JP"
-    ).run();
+       VALUES (?, ?, ?, 'BBC', 'http://bbc.com', ?, 'snippet', ?, '要約', ?, 35.0, 139.0, 'general')`,
+    )
+      .bind(
+        crypto.randomUUID(),
+        dailyId,
+        i + 1,
+        articles[i].title,
+        articles[i].titleJa,
+        articles[i].countryCode ?? "JP",
+      )
+      .run();
   }
 }
 
@@ -275,7 +279,8 @@ describe("getRecentArticles", () => {
   it("days*10件を上限に取得する", async () => {
     // 2日分のデータを作成（各10件）
     const tenArticles = Array.from({ length: 10 }, (_, i) => ({
-      title: `Article ${i}`, titleJa: `記事${i}`,
+      title: `Article ${i}`,
+      titleJa: `記事${i}`,
     }));
     await insertDayWithArticles("2020-01-01", tenArticles);
     await insertDayWithArticles("2020-01-02", tenArticles);
@@ -354,20 +359,20 @@ describe("M3: saveDailyNews INSERT OR IGNORE", () => {
     await saveDailyNews(env.DB, mockArticles, mockSelected);
     // 2回目はINSERT OR IGNOREでスキップ（エラーを投げない）
     await expect(
-      saveDailyNews(env.DB, mockArticles, mockSelected)
+      saveDailyNews(env.DB, mockArticles, mockSelected),
     ).resolves.toBeUndefined();
 
     const result = await getTodayNews(env.DB);
-    expect(result!.articles).toHaveLength(2);
+    expect(result?.articles).toHaveLength(2);
   });
 
   it("selected配列が空でも正常に完了する", async () => {
     await expect(
-      saveDailyNews(env.DB, mockArticles, [])
+      saveDailyNews(env.DB, mockArticles, []),
     ).resolves.toBeUndefined();
 
     const result = await getTodayNews(env.DB);
-    expect(result!.totalArticlesFetched).toBe(2);
-    expect(result!.articles).toHaveLength(0);
+    expect(result?.totalArticlesFetched).toBe(2);
+    expect(result?.articles).toHaveLength(0);
   });
 });

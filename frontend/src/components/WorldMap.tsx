@@ -1,10 +1,10 @@
-import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import { useEffect } from "react";
+import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import L from "leaflet";
+import type L from "leaflet";
 import type { NewsArticle } from "../types/api";
-import NewsMarker from "./NewsMarker";
 import CountryLayer from "./CountryLayer";
+import NewsMarker from "./NewsMarker";
 
 // ラベルなしダークタイル
 const TILE_URL =
@@ -87,7 +87,10 @@ export default function WorldMap({
           bounds={MAX_BOUNDS}
         />
         {onCountryClick && (
-          <CountryLayer onCountryClick={onCountryClick} selectedCountryCode={selectedCountryCode ?? null} />
+          <CountryLayer
+            onCountryClick={onCountryClick}
+            selectedCountryCode={selectedCountryCode ?? null}
+          />
         )}
         <FitBounds />
         <FlyToSelected
@@ -101,7 +104,7 @@ export default function WorldMap({
             isSelected={selectedArticleId === article.id}
             onClick={() =>
               onSelectArticle(
-                selectedArticleId === article.id ? null : article.id
+                selectedArticleId === article.id ? null : article.id,
               )
             }
           />

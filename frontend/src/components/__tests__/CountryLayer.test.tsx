@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import CountryLayer from "../CountryLayer";
 
 // レイヤーのsetStyle呼び出しを追跡するためのマップ
@@ -61,12 +61,34 @@ const mockGeoJSON: GeoJSON.FeatureCollection = {
     {
       type: "Feature",
       properties: { iso_a2: "JP", name: "Japan" },
-      geometry: { type: "Polygon", coordinates: [[[139, 35], [140, 35], [140, 36], [139, 36], [139, 35]]] },
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [139, 35],
+            [140, 35],
+            [140, 36],
+            [139, 36],
+            [139, 35],
+          ],
+        ],
+      },
     },
     {
       type: "Feature",
       properties: { iso_a2: "US", name: "United States of America" },
-      geometry: { type: "Polygon", coordinates: [[[-100, 40], [-99, 40], [-99, 41], [-100, 41], [-100, 40]]] },
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [-100, 40],
+            [-99, 40],
+            [-99, 41],
+            [-100, 41],
+            [-100, 40],
+          ],
+        ],
+      },
     },
   ],
 };
@@ -79,10 +101,12 @@ describe("CountryLayer", () => {
 
   it("GeoJSONデータをfetchして描画する", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(mockGeoJSON), { status: 200 })
+      new Response(JSON.stringify(mockGeoJSON), { status: 200 }),
     );
 
-    render(<CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />);
+    render(
+      <CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />,
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("geojson-layer")).toBeInTheDocument();
@@ -94,21 +118,30 @@ describe("CountryLayer", () => {
   it("fetch失敗時はエラーメッセージを表示し地図レイヤーは描画しない", async () => {
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Network error"));
 
-    render(<CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />);
+    render(
+      <CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />,
+    );
 
     await waitFor(() => {
-      expect(screen.getByText("地図データの読み込みに失敗しました")).toBeInTheDocument();
+      expect(
+        screen.getByText("地図データの読み込みに失敗しました"),
+      ).toBeInTheDocument();
       expect(screen.queryByTestId("geojson-layer")).not.toBeInTheDocument();
     });
   });
 
   it("国クリックでonCountryClickが呼ばれる", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(mockGeoJSON), { status: 200 })
+      new Response(JSON.stringify(mockGeoJSON), { status: 200 }),
     );
     const onCountryClick = vi.fn();
 
-    render(<CountryLayer onCountryClick={onCountryClick} selectedCountryCode={null} />);
+    render(
+      <CountryLayer
+        onCountryClick={onCountryClick}
+        selectedCountryCode={null}
+      />,
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("country-JP")).toBeInTheDocument();
@@ -120,11 +153,11 @@ describe("CountryLayer", () => {
 
   it("selectedCountryCode変更時に対応する国にselectedStyleが適用される", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(mockGeoJSON), { status: 200 })
+      new Response(JSON.stringify(mockGeoJSON), { status: 200 }),
     );
 
     const { rerender } = render(
-      <CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />
+      <CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />,
     );
 
     await waitFor(() => {
@@ -132,21 +165,23 @@ describe("CountryLayer", () => {
     });
 
     // JP を選択
-    rerender(<CountryLayer onCountryClick={vi.fn()} selectedCountryCode="JP" />);
+    rerender(
+      <CountryLayer onCountryClick={vi.fn()} selectedCountryCode="JP" />,
+    );
 
     const jpLayer = fakeLayers.get("JP");
     expect(jpLayer?.setStyle).toHaveBeenCalledWith(
-      expect.objectContaining({ weight: 2, color: "rgba(255,255,255,0.6)" })
+      expect.objectContaining({ weight: 2, color: "rgba(255,255,255,0.6)" }),
     );
   });
 
   it("selectedCountryCode解除時にdefaultStyleに戻る", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(mockGeoJSON), { status: 200 })
+      new Response(JSON.stringify(mockGeoJSON), { status: 200 }),
     );
 
     const { rerender } = render(
-      <CountryLayer onCountryClick={vi.fn()} selectedCountryCode="JP" />
+      <CountryLayer onCountryClick={vi.fn()} selectedCountryCode="JP" />,
     );
 
     await waitFor(() => {
@@ -154,23 +189,23 @@ describe("CountryLayer", () => {
     });
 
     // 選択解除
-    rerender(<CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />);
+    rerender(
+      <CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />,
+    );
 
     const jpLayer = fakeLayers.get("JP");
     // 最後のsetStyle呼び出しがdefaultStyle（weight: 0.5）であること
     const lastCall = jpLayer?.setStyle.mock.calls.at(-1)?.[0];
-    expect(lastCall).toEqual(
-      expect.objectContaining({ weight: 0.5 })
-    );
+    expect(lastCall).toEqual(expect.objectContaining({ weight: 0.5 }));
   });
 
   it("選択国を切り替えると前の国がdefaultStyleに戻る", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(mockGeoJSON), { status: 200 })
+      new Response(JSON.stringify(mockGeoJSON), { status: 200 }),
     );
 
     const { rerender } = render(
-      <CountryLayer onCountryClick={vi.fn()} selectedCountryCode="JP" />
+      <CountryLayer onCountryClick={vi.fn()} selectedCountryCode="JP" />,
     );
 
     await waitFor(() => {
@@ -178,26 +213,30 @@ describe("CountryLayer", () => {
     });
 
     // JP → US に切り替え
-    rerender(<CountryLayer onCountryClick={vi.fn()} selectedCountryCode="US" />);
+    rerender(
+      <CountryLayer onCountryClick={vi.fn()} selectedCountryCode="US" />,
+    );
 
     const jpLayer = fakeLayers.get("JP");
     const usLayer = fakeLayers.get("US");
 
     // JPはdefaultStyleに戻り、USにselectedStyleが適用される
     expect(jpLayer?.setStyle).toHaveBeenCalledWith(
-      expect.objectContaining({ weight: 0.5 })
+      expect.objectContaining({ weight: 0.5 }),
     );
     expect(usLayer?.setStyle).toHaveBeenCalledWith(
-      expect.objectContaining({ weight: 2, color: "rgba(255,255,255,0.6)" })
+      expect.objectContaining({ weight: 2, color: "rgba(255,255,255,0.6)" }),
     );
   });
 
   it("選択中の国にmouseoverしてもselectedStyleが維持される", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(mockGeoJSON), { status: 200 })
+      new Response(JSON.stringify(mockGeoJSON), { status: 200 }),
     );
 
-    render(<CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />);
+    render(
+      <CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />,
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("geojson-layer")).toBeInTheDocument();
@@ -212,16 +251,18 @@ describe("CountryLayer", () => {
     // 選択中の国にmouseover → selectedStyleが維持されること
     jpLayer.handlers.mouseover();
     expect(jpLayer.setStyle).toHaveBeenCalledWith(
-      expect.objectContaining({ weight: 2, color: "rgba(255,255,255,0.6)" })
+      expect.objectContaining({ weight: 2, color: "rgba(255,255,255,0.6)" }),
     );
   });
 
   it("クリック後のmouseoutでselectedStyleが維持される（タッチデバイス対策）", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(mockGeoJSON), { status: 200 })
+      new Response(JSON.stringify(mockGeoJSON), { status: 200 }),
     );
 
-    render(<CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />);
+    render(
+      <CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />,
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("geojson-layer")).toBeInTheDocument();
@@ -236,16 +277,18 @@ describe("CountryLayer", () => {
     // 最後のsetStyle呼び出しがselectedStyle（weight: 1.5）であること
     const lastCall = jpLayer.setStyle.mock.calls.at(-1)?.[0];
     expect(lastCall).toEqual(
-      expect.objectContaining({ weight: 2, color: "rgba(255,255,255,0.6)" })
+      expect.objectContaining({ weight: 2, color: "rgba(255,255,255,0.6)" }),
     );
   });
 
   it("クリックで別の国に切り替えると前の国が即座にdefaultStyleに戻る", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(mockGeoJSON), { status: 200 })
+      new Response(JSON.stringify(mockGeoJSON), { status: 200 }),
     );
 
-    render(<CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />);
+    render(
+      <CountryLayer onCountryClick={vi.fn()} selectedCountryCode={null} />,
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("geojson-layer")).toBeInTheDocument();
@@ -257,7 +300,7 @@ describe("CountryLayer", () => {
     // JP をクリック
     jpLayer.handlers.click();
     expect(jpLayer.setStyle).toHaveBeenCalledWith(
-      expect.objectContaining({ weight: 2 })
+      expect.objectContaining({ weight: 2 }),
     );
 
     // US をクリック → JP は click ハンドラー内で即座に defaultStyle に戻る
@@ -265,10 +308,10 @@ describe("CountryLayer", () => {
     usLayer.handlers.click();
 
     expect(jpLayer.setStyle).toHaveBeenCalledWith(
-      expect.objectContaining({ weight: 0.5 })
+      expect.objectContaining({ weight: 0.5 }),
     );
     expect(usLayer.setStyle).toHaveBeenCalledWith(
-      expect.objectContaining({ weight: 2 })
+      expect.objectContaining({ weight: 2 }),
     );
   });
 
@@ -279,16 +322,32 @@ describe("CountryLayer", () => {
         {
           type: "Feature",
           properties: { iso_a2: "-99", name: "Antarctica" },
-          geometry: { type: "Polygon", coordinates: [[[0, -80], [10, -80], [10, -70], [0, -70], [0, -80]]] },
+          geometry: {
+            type: "Polygon",
+            coordinates: [
+              [
+                [0, -80],
+                [10, -80],
+                [10, -70],
+                [0, -70],
+                [0, -80],
+              ],
+            ],
+          },
         },
       ],
     };
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(noCodeGeoJSON), { status: 200 })
+      new Response(JSON.stringify(noCodeGeoJSON), { status: 200 }),
     );
     const onCountryClick = vi.fn();
 
-    render(<CountryLayer onCountryClick={onCountryClick} selectedCountryCode={null} />);
+    render(
+      <CountryLayer
+        onCountryClick={onCountryClick}
+        selectedCountryCode={null}
+      />,
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("country--99")).toBeInTheDocument();

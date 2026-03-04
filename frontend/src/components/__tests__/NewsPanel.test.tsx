@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import NewsPanel from "../NewsPanel";
+import { describe, expect, it, vi } from "vitest";
 import type { NewsArticle } from "../../types/api";
+import NewsPanel from "../NewsPanel";
 
 const mockArticle = (overrides: Partial<NewsArticle> = {}): NewsArticle => ({
   id: "1",
@@ -27,7 +27,7 @@ describe("NewsPanel", () => {
         articles={[]}
         selectedArticleId={null}
         onSelectArticle={() => {}}
-      />
+      />,
     );
     expect(screen.getByTestId("news-panel-empty")).toBeInTheDocument();
     expect(screen.getByText("ニュースがありません")).toBeInTheDocument();
@@ -36,14 +36,19 @@ describe("NewsPanel", () => {
   it("記事一覧をランク・ソース・タイトル付きで表示する", () => {
     const articles = [
       mockArticle({ id: "1", rank: 1, sourceName: "BBC", titleJa: "記事1" }),
-      mockArticle({ id: "2", rank: 2, sourceName: "Reuters", titleJa: "記事2" }),
+      mockArticle({
+        id: "2",
+        rank: 2,
+        sourceName: "Reuters",
+        titleJa: "記事2",
+      }),
     ];
     render(
       <NewsPanel
         articles={articles}
         selectedArticleId={null}
         onSelectArticle={() => {}}
-      />
+      />,
     );
     expect(screen.getByTestId("news-panel")).toBeInTheDocument();
     expect(screen.getByText("#1")).toBeInTheDocument();
@@ -64,7 +69,7 @@ describe("NewsPanel", () => {
         articles={articles}
         selectedArticleId={null}
         onSelectArticle={onSelect}
-      />
+      />,
     );
 
     await user.click(screen.getByTestId("news-card-abc"));
@@ -80,7 +85,7 @@ describe("NewsPanel", () => {
         articles={articles}
         selectedArticleId="1"
         onSelectArticle={() => {}}
-      />
+      />,
     );
     expect(screen.getByText("この記事の要約です")).toBeInTheDocument();
   });
@@ -94,7 +99,7 @@ describe("NewsPanel", () => {
         articles={articles}
         selectedArticleId={null}
         onSelectArticle={() => {}}
-      />
+      />,
     );
     expect(screen.queryByText("この記事の要約です")).not.toBeInTheDocument();
   });
@@ -109,7 +114,7 @@ describe("NewsPanel", () => {
         articles={articles}
         selectedArticleId="1"
         onSelectArticle={onSelect}
-      />
+      />,
     );
 
     await user.click(screen.getByTestId("news-card-1"));
@@ -125,7 +130,7 @@ describe("NewsPanel", () => {
         articles={articles}
         selectedArticleId="1"
         onSelectArticle={() => {}}
-      />
+      />,
     );
     const link = screen.getByRole("link", { name: "元記事を読む →" });
     expect(link).toBeInTheDocument();
@@ -135,17 +140,17 @@ describe("NewsPanel", () => {
   });
 
   it("sourceUrlが空の場合に元記事リンクが表示されない", () => {
-    const articles = [
-      mockArticle({ id: "1", sourceUrl: "" }),
-    ];
+    const articles = [mockArticle({ id: "1", sourceUrl: "" })];
     render(
       <NewsPanel
         articles={articles}
         selectedArticleId="1"
         onSelectArticle={() => {}}
-      />
+      />,
     );
-    expect(screen.queryByRole("link", { name: "元記事を読む →" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "元記事を読む →" }),
+    ).not.toBeInTheDocument();
   });
 
   it("各カードに国名を表示する", () => {
@@ -158,7 +163,7 @@ describe("NewsPanel", () => {
         articles={articles}
         selectedArticleId={null}
         onSelectArticle={() => {}}
-      />
+      />,
     );
     expect(screen.getByText("日本")).toBeInTheDocument();
     expect(screen.getByText("アメリカ")).toBeInTheDocument();
@@ -171,14 +176,11 @@ describe("NewsPanel", () => {
         articles={articles}
         selectedArticleId={null}
         onSelectArticle={() => {}}
-      />
+      />,
     );
     const flag = screen.getByAltText("日本");
     expect(flag).toBeInTheDocument();
-    expect(flag).toHaveAttribute(
-      "src",
-      expect.stringContaining("/jp.")
-    );
+    expect(flag).toHaveAttribute("src", expect.stringContaining("/jp."));
   });
 
   it("国旗画像にlg:hiddenクラスが付与されている（PCでは非表示）", () => {
@@ -188,22 +190,20 @@ describe("NewsPanel", () => {
         articles={articles}
         selectedArticleId={null}
         onSelectArticle={() => {}}
-      />
+      />,
     );
     const flag = screen.getByAltText("日本");
     expect(flag.className).toContain("lg:hidden");
   });
 
   it("選択中カードの展開部分にlg:hiddenクラスが付与されている", () => {
-    const articles = [
-      mockArticle({ id: "1", summaryJa: "テスト要約" }),
-    ];
-    const { container } = render(
+    const articles = [mockArticle({ id: "1", summaryJa: "テスト要約" })];
+    render(
       <NewsPanel
         articles={articles}
         selectedArticleId="1"
         onSelectArticle={() => {}}
-      />
+      />,
     );
     const summary = screen.getByText("テスト要約");
     // 展開divの親がlg:hiddenであることを確認
@@ -218,7 +218,7 @@ describe("NewsPanel", () => {
         articles={articles}
         selectedArticleId={null}
         onSelectArticle={() => {}}
-      />
+      />,
     );
     // politics = bg-red-500
     const dot = container.querySelector(".bg-red-500");
