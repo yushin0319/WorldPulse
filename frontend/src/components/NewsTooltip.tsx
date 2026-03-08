@@ -10,6 +10,7 @@ interface NewsTooltipProps {
 
 export default function NewsTooltip({ article, onClose }: NewsTooltipProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const countryNameJa = getCountryInfo(article.countryCode).nameJa;
 
   useEffect(() => {
     ref.current?.focus();
@@ -37,12 +38,12 @@ export default function NewsTooltip({ article, onClose }: NewsTooltipProps) {
     >
       <div className="mb-1 flex items-center gap-1.5 text-xs text-gray-400">
         <span>#{article.rank}</span>
-        <span>{getCountryInfo(article.countryCode).nameJa}</span>
+        <span>{countryNameJa}</span>
         <span>·</span>
         <span>{article.sourceName}</span>
         <img
           src={getCountryFlagUrl(article.countryCode)}
-          alt={getCountryInfo(article.countryCode).nameJa}
+          alt={countryNameJa}
           className="ml-auto inline-block h-3.5 w-5 rounded-sm"
           loading="lazy"
         />

@@ -29,6 +29,7 @@ export default function NewsPanel({
       {articles.map((article) => {
         const isSelected = selectedArticleId === article.id;
         const colorClass = CATEGORY_BG[article.category] ?? CATEGORY_BG.general;
+        const countryNameJa = getCountryInfo(article.countryCode).nameJa;
 
         return (
           <button
@@ -45,16 +46,14 @@ export default function NewsPanel({
               <span className="text-xs font-bold text-gray-500">
                 #{article.rank}
               </span>
-              <span className="text-xs text-gray-500">
-                {getCountryInfo(article.countryCode).nameJa}
-              </span>
+              <span className="text-xs text-gray-500">{countryNameJa}</span>
               <span className={`h-2 w-2 rounded-full ${colorClass}`} />
               <span className="text-xs text-gray-500">
                 {article.sourceName}
               </span>
               <img
                 src={getCountryFlagUrl(article.countryCode)}
-                alt={getCountryInfo(article.countryCode).nameJa}
+                alt={countryNameJa}
                 className="ml-auto inline-block h-3.5 w-5 rounded-sm lg:hidden"
                 loading="lazy"
               />
