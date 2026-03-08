@@ -1,19 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { HttpResponse, http } from "msw";
+import { beforeEach, describe, expect, it } from "vitest";
+import { server } from "../../mocks/server";
 import { useNewsStore } from "../newsStore";
 
-// APIモック
-vi.mock("../../services/api", () => ({
-  getTodayNews: vi.fn(),
-  getNewsByDate: vi.fn(),
-  getAvailableDates: vi.fn(),
-  getNewsByCountry: vi.fn(),
-}));
-
-import {
-  getAvailableDates,
-  getNewsByCountry,
-  getNewsByDate,
-} from "../../services/api";
+const API_BASE = "http://localhost:8787";
 
 const mockTodayNews = {
   fetchDate: "2026-02-23",
@@ -51,23 +41,21 @@ describe("newsStore - fetchAvailableDates 高度な挙動", () => {
       countryArticles: [],
       isLoadingCountry: false,
     });
-    vi.clearAllMocks();
   });
 
   it("fetchAvailableDates: fetchTodayNewsが先に完了していた場合、fetchDateを保持する", async () => {
-    // fetchTodayNewsが先に完了: fetchDate="2026-02-24", availableDates=["2026-02-24"]
     useNewsStore.setState({
       fetchDate: "2026-02-24",
       availableDates: ["2026-02-24"],
     });
-    // APIキャッシュが古く "2026-02-24" を含まない
-    vi.mocked(getAvailableDates).mockResolvedValue({
-      dates: ["2026-02-23", "2026-02-22"],
-    });
+    server.use(
+      http.get(`${API_BASE}/api/news/dates`, () =>
+        HttpResponse.json({ dates: ["2026-02-23", "2026-02-22"] }),
+      ),
+    );
 
     await useNewsStore.getState().fetchAvailableDates();
 
-    // fetchDateが先頭に追加され、失われない
     expect(useNewsStore.getState().availableDates).toEqual([
       "2026-02-24",
       "2026-02-23",
@@ -80,9 +68,11 @@ describe("newsStore - fetchAvailableDates 高度な挙動", () => {
       fetchDate: "2026-02-24",
       availableDates: ["2026-02-24"],
     });
-    vi.mocked(getAvailableDates).mockResolvedValue({
-      dates: ["2026-02-24", "2026-02-23"],
-    });
+    server.use(
+      http.get(`${API_BASE}/api/news/dates`, () =>
+        HttpResponse.json({ dates: ["2026-02-24", "2026-02-23"] }),
+      ),
+    );
 
     await useNewsStore.getState().fetchAvailableDates();
 
@@ -94,13 +84,16 @@ describe("newsStore - fetchAvailableDates 高度な挙動", () => {
 
   it("fetchAvailableDates: エラー時もavailableDatesは変更されない", async () => {
     useNewsStore.setState({ availableDates: ["2026-02-23"] });
-    vi.mocked(getAvailableDates).mockRejectedValue(new Error("fail"));
+    server.use(
+      http.get(
+        `${API_BASE}/api/news/dates`,
+        () => new HttpResponse(null, { status: 500 }),
+      ),
+    );
 
     await useNewsStore.getState().fetchAvailableDates();
 
-    // エラーが起きても既存の日付一覧は保持される
     expect(useNewsStore.getState().availableDates).toEqual(["2026-02-23"]);
-    // エラーstateが設定される
     expect(useNewsStore.getState().error).toBe(
       "日付一覧の取得に失敗しました。",
     );
@@ -122,7 +115,6 @@ describe("newsStore - 国パネル", () => {
       countryArticles: [],
       isLoadingCountry: false,
     });
-    vi.clearAllMocks();
   });
 
   it("初期状態: 国パネル関連がnull/空", () => {
@@ -190,7 +182,11 @@ describe("newsStore - 国パネル", () => {
         },
       ],
     };
-    vi.mocked(getNewsByCountry).mockResolvedValue(mockCountryNews);
+    server.use(
+      http.get(`${API_BASE}/api/news/country/JP`, () =>
+        HttpResponse.json(mockCountryNews),
+      ),
+    );
 
     await useNewsStore.getState().fetchCountryNews("JP");
 
@@ -198,29 +194,36 @@ describe("newsStore - 国パネル", () => {
     expect(state.countryArticles).toHaveLength(1);
     expect(state.countryArticles[0].titleJa).toBe("JP記事");
     expect(state.isLoadingCountry).toBe(false);
-    // fetchCountryNews は selectedCountryCode を変更しない（selectCountry の責務）
     expect(state.selectedCountryCode).toBeNull();
   });
 
   it("fetchCountryNews: ローディング中はisLoadingCountryがtrue", async () => {
-    let resolveFn: (value: unknown) => void;
-    vi.mocked(getNewsByCountry).mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveFn = resolve;
-        }),
+    let resolveGate!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      resolveGate = resolve;
+    });
+    server.use(
+      http.get(`${API_BASE}/api/news/country/US`, async () => {
+        await gate;
+        return HttpResponse.json({ countryCode: "US", articles: [] });
+      }),
     );
 
     const promise = useNewsStore.getState().fetchCountryNews("US");
     expect(useNewsStore.getState().isLoadingCountry).toBe(true);
 
-    resolveFn?.({ countryCode: "US", articles: [] });
+    resolveGate();
     await promise;
     expect(useNewsStore.getState().isLoadingCountry).toBe(false);
   });
 
   it("fetchCountryNews: エラー時にerrorをセットしisLoadingCountryをfalseにする", async () => {
-    vi.mocked(getNewsByCountry).mockRejectedValue(new Error("fail"));
+    server.use(
+      http.get(
+        `${API_BASE}/api/news/country/JP`,
+        () => new HttpResponse(null, { status: 500 }),
+      ),
+    );
 
     await useNewsStore.getState().fetchCountryNews("JP");
 
@@ -250,7 +253,11 @@ describe("newsStore - 国パネル", () => {
         },
       ],
     });
-    vi.mocked(getNewsByDate).mockResolvedValue(mockTodayNews);
+    server.use(
+      http.get(`${API_BASE}/api/news/2026-02-23`, () =>
+        HttpResponse.json(mockTodayNews),
+      ),
+    );
 
     await useNewsStore.getState().fetchNewsByDate("2026-02-23");
 

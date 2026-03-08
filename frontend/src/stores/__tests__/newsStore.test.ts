@@ -1,19 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { HttpResponse, http } from "msw";
+import { beforeEach, describe, expect, it } from "vitest";
+import { server } from "../../mocks/server";
 import { useNewsStore } from "../newsStore";
 
-// APIモック
-vi.mock("../../services/api", () => ({
-  getTodayNews: vi.fn(),
-  getNewsByDate: vi.fn(),
-  getAvailableDates: vi.fn(),
-  getNewsByCountry: vi.fn(),
-}));
-
-import {
-  getAvailableDates,
-  getNewsByDate,
-  getTodayNews,
-} from "../../services/api";
+const API_BASE = "http://localhost:8787";
 
 const mockTodayNews = {
   fetchDate: "2026-02-23",
@@ -38,7 +28,6 @@ const mockTodayNews = {
 
 describe("newsStore", () => {
   beforeEach(() => {
-    // ストアリセット
     useNewsStore.setState({
       articles: [],
       fetchDate: null,
@@ -52,7 +41,6 @@ describe("newsStore", () => {
       countryArticles: [],
       isLoadingCountry: false,
     });
-    vi.clearAllMocks();
   });
 
   it("初期状態が正しい", () => {
@@ -76,10 +64,12 @@ describe("newsStore", () => {
   });
 
   it("fetchTodayNews: 成功時にデータをセットする", async () => {
-    vi.mocked(getTodayNews).mockResolvedValue(mockTodayNews);
-
+    server.use(
+      http.get(`${API_BASE}/api/news/today`, () =>
+        HttpResponse.json(mockTodayNews),
+      ),
+    );
     await useNewsStore.getState().fetchTodayNews();
-
     const state = useNewsStore.getState();
     expect(state.articles).toHaveLength(1);
     expect(state.fetchDate).toBe("2026-02-23");
@@ -89,13 +79,12 @@ describe("newsStore", () => {
   });
 
   it("fetchTodayNews: fetchDateがavailableDatesに含まれない場合、先頭に追加する", async () => {
-    // datesキャッシュが古く "2026-02-23" のみの状態
     useNewsStore.setState({ availableDates: ["2026-02-23"] });
     const newData = { ...mockTodayNews, fetchDate: "2026-02-24" };
-    vi.mocked(getTodayNews).mockResolvedValue(newData);
-
+    server.use(
+      http.get(`${API_BASE}/api/news/today`, () => HttpResponse.json(newData)),
+    );
     await useNewsStore.getState().fetchTodayNews();
-
     const state = useNewsStore.getState();
     expect(state.fetchDate).toBe("2026-02-24");
     expect(state.availableDates).toEqual(["2026-02-24", "2026-02-23"]);
@@ -103,10 +92,12 @@ describe("newsStore", () => {
 
   it("fetchTodayNews: fetchDateが既にavailableDatesにある場合、重複追加しない", async () => {
     useNewsStore.setState({ availableDates: ["2026-02-23", "2026-02-22"] });
-    vi.mocked(getTodayNews).mockResolvedValue(mockTodayNews);
-
+    server.use(
+      http.get(`${API_BASE}/api/news/today`, () =>
+        HttpResponse.json(mockTodayNews),
+      ),
+    );
     await useNewsStore.getState().fetchTodayNews();
-
     expect(useNewsStore.getState().availableDates).toEqual([
       "2026-02-23",
       "2026-02-22",
@@ -114,10 +105,13 @@ describe("newsStore", () => {
   });
 
   it("fetchTodayNews: エラー時にerrorをセットする", async () => {
-    vi.mocked(getTodayNews).mockRejectedValue(new Error("Network error"));
-
+    server.use(
+      http.get(
+        `${API_BASE}/api/news/today`,
+        () => new HttpResponse(null, { status: 500 }),
+      ),
+    );
     await useNewsStore.getState().fetchTodayNews();
-
     const state = useNewsStore.getState();
     expect(state.error).toBe(
       "ニュースの取得に失敗しました。時間をおいて再試行してください。",
@@ -127,30 +121,33 @@ describe("newsStore", () => {
   });
 
   it("fetchNewsByDate: 日付指定でデータを取得する", async () => {
-    vi.mocked(getNewsByDate).mockResolvedValue(mockTodayNews);
-
+    server.use(
+      http.get(`${API_BASE}/api/news/2026-02-23`, () =>
+        HttpResponse.json(mockTodayNews),
+      ),
+    );
     await useNewsStore.getState().fetchNewsByDate("2026-02-23");
-
-    expect(getNewsByDate).toHaveBeenCalledWith("2026-02-23");
     expect(useNewsStore.getState().articles).toHaveLength(1);
   });
 
   it("fetchNewsByDate: 選択中の記事をリセットする", async () => {
     useNewsStore.getState().selectArticle("old-id");
-    vi.mocked(getNewsByDate).mockResolvedValue(mockTodayNews);
-
+    server.use(
+      http.get(`${API_BASE}/api/news/2026-02-23`, () =>
+        HttpResponse.json(mockTodayNews),
+      ),
+    );
     await useNewsStore.getState().fetchNewsByDate("2026-02-23");
-
     expect(useNewsStore.getState().selectedArticleId).toBeNull();
   });
 
   it("fetchAvailableDates: 日付一覧を取得する", async () => {
-    vi.mocked(getAvailableDates).mockResolvedValue({
-      dates: ["2026-02-23", "2026-02-22"],
-    });
-
+    server.use(
+      http.get(`${API_BASE}/api/news/dates`, () =>
+        HttpResponse.json({ dates: ["2026-02-23", "2026-02-22"] }),
+      ),
+    );
     await useNewsStore.getState().fetchAvailableDates();
-
     expect(useNewsStore.getState().availableDates).toEqual([
       "2026-02-23",
       "2026-02-22",
@@ -158,10 +155,13 @@ describe("newsStore", () => {
   });
 
   it("fetchNewsByDate: エラー時にerrorをセットしisFetchingをfalseにする", async () => {
-    vi.mocked(getNewsByDate).mockRejectedValue(new Error("Server error"));
-
+    server.use(
+      http.get(
+        `${API_BASE}/api/news/2026-02-22`,
+        () => new HttpResponse(null, { status: 500 }),
+      ),
+    );
     await useNewsStore.getState().fetchNewsByDate("2026-02-22");
-
     const state = useNewsStore.getState();
     expect(state.error).toBe(
       "ニュースの取得に失敗しました。時間をおいて再試行してください。",
@@ -170,19 +170,22 @@ describe("newsStore", () => {
   });
 
   it("fetchNewsByDate: isFetchingがtrueになりisLoadingはfalseのまま", async () => {
-    let resolveFn: (value: unknown) => void;
-    vi.mocked(getNewsByDate).mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveFn = resolve;
-        }),
+    // gate パターン: ハンドラがリクエストを受けても即座に返さず制御できる
+    let resolveGate!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      resolveGate = resolve;
+    });
+    server.use(
+      http.get(`${API_BASE}/api/news/2026-02-22`, async () => {
+        await gate;
+        return HttpResponse.json(mockTodayNews);
+      }),
     );
-
     const promise = useNewsStore.getState().fetchNewsByDate("2026-02-22");
+    // isFetchingはfetch開始直後に同期でtrueになる
     expect(useNewsStore.getState().isFetching).toBe(true);
     expect(useNewsStore.getState().isLoading).toBe(false);
-
-    resolveFn?.(mockTodayNews);
+    resolveGate();
     await promise;
     expect(useNewsStore.getState().isFetching).toBe(false);
   });
