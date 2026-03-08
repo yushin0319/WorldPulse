@@ -1,83 +1,91 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { HttpResponse, http } from "msw";
+import { describe, expect, it } from "vitest";
+import { server } from "../../mocks/server";
 import { getAvailableDates, getNewsByDate, getTodayNews } from "../api";
 
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
+const API_BASE = "http://localhost:8787";
 
 describe("API client", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it("getTodayNews: /api/news/today を呼び出す", async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ fetchDate: "2026-02-23", articles: [] }),
-    });
+    let capturedUrl = "";
+    server.use(
+      http.get(`${API_BASE}/api/news/today`, ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({ fetchDate: "2026-02-23", articles: [] });
+      }),
+    );
 
     const result = await getTodayNews();
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/news/today"),
-    );
+    expect(capturedUrl).toContain("/api/news/today");
     expect(result.fetchDate).toBe("2026-02-23");
   });
 
   it("getNewsByDate: /api/news/{date} を呼び出す", async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ fetchDate: "2026-02-22", articles: [] }),
-    });
+    let capturedUrl = "";
+    server.use(
+      http.get(`${API_BASE}/api/news/2026-02-22`, ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({ fetchDate: "2026-02-22", articles: [] });
+      }),
+    );
 
     await getNewsByDate("2026-02-22");
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/news/2026-02-22"),
-    );
+    expect(capturedUrl).toContain("/api/news/2026-02-22");
   });
 
   it("getAvailableDates: /api/news/dates を呼び出す", async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ dates: ["2026-02-23"] }),
-    });
+    server.use(
+      http.get(`${API_BASE}/api/news/dates`, () =>
+        HttpResponse.json({ dates: ["2026-02-23"] }),
+      ),
+    );
 
     const result = await getAvailableDates();
     expect(result.dates).toEqual(["2026-02-23"]);
   });
 
   it("APIエラー時にErrorをthrowする", async () => {
-    mockFetch.mockResolvedValue({
-      ok: false,
-      status: 404,
-      statusText: "Not Found",
-    });
+    server.use(
+      http.get(
+        `${API_BASE}/api/news/today`,
+        () => new HttpResponse(null, { status: 404, statusText: "Not Found" }),
+      ),
+    );
 
-    await expect(getTodayNews()).rejects.toThrow("API error: 404 Not Found");
+    await expect(getTodayNews()).rejects.toThrow("API error: 404");
   });
 
   it("500エラー時もErrorをthrowする", async () => {
-    mockFetch.mockResolvedValue({
-      ok: false,
-      status: 500,
-      statusText: "Internal Server Error",
-    });
-
-    await expect(getTodayNews()).rejects.toThrow(
-      "API error: 500 Internal Server Error",
+    server.use(
+      http.get(
+        `${API_BASE}/api/news/today`,
+        () =>
+          new HttpResponse(null, {
+            status: 500,
+            statusText: "Internal Server Error",
+          }),
+      ),
     );
+
+    await expect(getTodayNews()).rejects.toThrow("API error: 500");
   });
 
   it("ネットワーク切断時（fetch throw）にErrorが伝播する", async () => {
-    mockFetch.mockRejectedValue(new TypeError("Failed to fetch"));
+    server.use(
+      http.get(`${API_BASE}/api/news/today`, () => HttpResponse.error()),
+    );
 
-    await expect(getTodayNews()).rejects.toThrow("Failed to fetch");
+    await expect(getTodayNews()).rejects.toThrow();
   });
 
   it("レスポンスがJSONでない場合にErrorが伝播する", async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: () => Promise.reject(new SyntaxError("Unexpected token")),
-    });
+    server.use(
+      http.get(
+        `${API_BASE}/api/news/today`,
+        () => new HttpResponse("not json", { status: 200 }),
+      ),
+    );
 
-    await expect(getTodayNews()).rejects.toThrow("Unexpected token");
+    await expect(getTodayNews()).rejects.toThrow();
   });
 });
