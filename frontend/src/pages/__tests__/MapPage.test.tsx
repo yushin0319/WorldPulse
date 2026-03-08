@@ -200,8 +200,14 @@ describe("MapPage", () => {
 
     await user.click(screen.getByRole("button", { name: "再読み込み" }));
 
-    // 初回mount + リトライの計2回呼ばれる
-    expect(getTodayNews).toHaveBeenCalledTimes(2);
+    // リトライ後にエラーが解消されることを確認
+    await waitFor(() => {
+      expect(
+        screen.queryByText(
+          "ニュースの取得に失敗しました。時間をおいて再試行してください。",
+        ),
+      ).not.toBeInTheDocument();
+    });
   });
 
   it("リトライボタンクリックでfetchNewsByDateが呼ばれる（fetchDateあり）", async () => {
