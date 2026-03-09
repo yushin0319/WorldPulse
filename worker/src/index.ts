@@ -49,8 +49,9 @@ app.use(
   }),
 );
 
-// Routes
-app.route("/api/news", newsRoutes);
+// Routes（Hono RPC 型推論のため route() の戻り値から型をエクスポート）
+const newsRoute = app.route("/api/news", newsRoutes);
+export type AppType = typeof newsRoute;
 
 app.get("/health", (c) => c.json({ status: "ok" }));
 app.get("/", (c) => c.json({ app: "WorldPulse API", status: "ok" }));
