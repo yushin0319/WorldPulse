@@ -180,6 +180,40 @@ export async function getRecentArticles(
   }));
 }
 
+// 共通: newsArticles の select 列
+const articleColumns = {
+  id: newsArticles.id,
+  rank: newsArticles.rank,
+  sourceName: newsArticles.sourceName,
+  sourceUrl: newsArticles.sourceUrl,
+  originalTitle: newsArticles.originalTitle,
+  titleJa: newsArticles.titleJa,
+  summaryJa: newsArticles.summaryJa,
+  countryCode: newsArticles.countryCode,
+  latitude: newsArticles.latitude,
+  longitude: newsArticles.longitude,
+  category: newsArticles.category,
+  publishedAt: newsArticles.publishedAt,
+};
+
+// 共通: DB行 → NewsArticle マッピング
+function toArticle(r: {
+  id: string;
+  rank: number;
+  sourceName: string;
+  sourceUrl: string;
+  originalTitle: string;
+  titleJa: string;
+  summaryJa: string;
+  countryCode: string;
+  latitude: number;
+  longitude: number;
+  category: string;
+  publishedAt: string | null;
+}): NewsArticle {
+  return { ...r, category: r.category as NewsCategory };
+}
+
 // 国別ニュース履歴取得（全日付横断）
 export async function getNewsByCountry(
   d1: D1Database,
@@ -188,21 +222,7 @@ export async function getNewsByCountry(
   const db = drizzle(d1);
 
   const rows = await db
-    .select({
-      id: newsArticles.id,
-      rank: newsArticles.rank,
-      sourceName: newsArticles.sourceName,
-      sourceUrl: newsArticles.sourceUrl,
-      originalTitle: newsArticles.originalTitle,
-      titleJa: newsArticles.titleJa,
-      summaryJa: newsArticles.summaryJa,
-      countryCode: newsArticles.countryCode,
-      latitude: newsArticles.latitude,
-      longitude: newsArticles.longitude,
-      category: newsArticles.category,
-      publishedAt: newsArticles.publishedAt,
-      fetchDate: dailyNews.fetchDate,
-    })
+    .select({ ...articleColumns, fetchDate: dailyNews.fetchDate })
     .from(newsArticles)
     .innerJoin(dailyNews, eq(newsArticles.dailyNewsId, dailyNews.id))
     .where(eq(newsArticles.countryCode, countryCode))
@@ -211,21 +231,7 @@ export async function getNewsByCountry(
 
   return {
     countryCode,
-    articles: rows.map((r) => ({
-      id: r.id,
-      rank: r.rank,
-      sourceName: r.sourceName,
-      sourceUrl: r.sourceUrl,
-      originalTitle: r.originalTitle,
-      titleJa: r.titleJa,
-      summaryJa: r.summaryJa,
-      countryCode: r.countryCode,
-      latitude: r.latitude,
-      longitude: r.longitude,
-      category: r.category as NewsCategory,
-      publishedAt: r.publishedAt,
-      fetchDate: r.fetchDate,
-    })),
+    articles: rows.map((r) => ({ ...toArticle(r), fetchDate: r.fetchDate })),
   };
 }
 
@@ -237,36 +243,10 @@ async function getArticlesByDailyId(
   const db = drizzle(d1);
 
   const rows = await db
-    .select({
-      id: newsArticles.id,
-      rank: newsArticles.rank,
-      sourceName: newsArticles.sourceName,
-      sourceUrl: newsArticles.sourceUrl,
-      originalTitle: newsArticles.originalTitle,
-      titleJa: newsArticles.titleJa,
-      summaryJa: newsArticles.summaryJa,
-      countryCode: newsArticles.countryCode,
-      latitude: newsArticles.latitude,
-      longitude: newsArticles.longitude,
-      category: newsArticles.category,
-      publishedAt: newsArticles.publishedAt,
-    })
+    .select(articleColumns)
     .from(newsArticles)
     .where(eq(newsArticles.dailyNewsId, dailyId))
     .orderBy(newsArticles.rank);
 
-  return rows.map((r) => ({
-    id: r.id,
-    rank: r.rank,
-    sourceName: r.sourceName,
-    sourceUrl: r.sourceUrl,
-    originalTitle: r.originalTitle,
-    titleJa: r.titleJa,
-    summaryJa: r.summaryJa,
-    countryCode: r.countryCode,
-    latitude: r.latitude,
-    longitude: r.longitude,
-    category: r.category as NewsCategory,
-    publishedAt: r.publishedAt,
-  }));
+  return rows.map(toArticle);
 }
