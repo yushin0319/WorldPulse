@@ -31,3 +31,8 @@ coverage/
 *.log
 
 .serena/
+
+# tsc -b composite output (shared/)
+shared/*.js
+shared/*.d.ts
+shared/*.d.ts.map
