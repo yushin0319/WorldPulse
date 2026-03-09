@@ -24,6 +24,9 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"],
-  "exclude": ["src/**/__tests__/**", "src/**/*.test.*", "src/test/**"]
+  "include": ["src", "../shared"],
+  "exclude": ["src/**/__tests__/**", "src/**/*.test.*", "src/test/**"],
+  "references": [
+    { "path": "../worker" }
+  ]
 }
