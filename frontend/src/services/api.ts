@@ -1,3 +1,5 @@
+import { hc } from "hono/client";
+import type { AppType } from "../../../shared/api";
 import type {
   AvailableDates,
   CountryNewsResponse,
@@ -6,8 +8,12 @@ import type {
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8787";
 
-async function fetchJson<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`);
+// Hono RPC クライアント（型安全なURL構築 + パラメータ）
+const client = hc<AppType>(API_BASE);
+
+// エラーハンドリング一元化
+async function callApi<T>(apiCall: Promise<Response>): Promise<T> {
+  const res = await apiCall;
   if (!res.ok) {
     throw new Error(`API error: ${res.status} ${res.statusText}`);
   }
@@ -15,19 +21,21 @@ async function fetchJson<T>(path: string): Promise<T> {
 }
 
 export async function getTodayNews(): Promise<DailyNews> {
-  return fetchJson<DailyNews>("/api/news/today");
+  return callApi<DailyNews>(client.api.news.today.$get());
 }
 
 export async function getNewsByDate(date: string): Promise<DailyNews> {
-  return fetchJson<DailyNews>(`/api/news/${date}`);
+  return callApi<DailyNews>(client.api.news[":date"].$get({ param: { date } }));
 }
 
 export async function getAvailableDates(): Promise<AvailableDates> {
-  return fetchJson<AvailableDates>("/api/news/dates");
+  return callApi<AvailableDates>(client.api.news.dates.$get());
 }
 
 export async function getNewsByCountry(
   code: string,
 ): Promise<CountryNewsResponse> {
-  return fetchJson<CountryNewsResponse>(`/api/news/country/${code}`);
+  return callApi<CountryNewsResponse>(
+    client.api.news.country[":code"].$get({ param: { code } }),
+  );
 }
