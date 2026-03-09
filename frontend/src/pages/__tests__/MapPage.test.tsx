@@ -1,6 +1,7 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, type ReactNode, vi } from "vitest";
 import MapPage from "../MapPage";
 
 // APIモック
@@ -34,7 +35,6 @@ vi.mock("leaflet/dist/leaflet.css", () => ({}));
 import {
   getAvailableDates,
   getNewsByCountry,
-  getNewsByDate,
   getTodayNews,
 } from "../../services/api";
 import { useNewsStore } from "../../stores/newsStore";
@@ -56,20 +56,31 @@ const mockArticles = [
   },
 ];
 
+// テスト用 QueryClient ラッパー
+function createTestQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        gcTime: 0,
+      },
+    },
+  });
+}
+
+function renderWithQuery(ui: ReactNode) {
+  const queryClient = createTestQueryClient();
+  return render(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+  );
+}
+
 describe("MapPage", () => {
   beforeEach(() => {
     useNewsStore.setState({
-      articles: [],
-      fetchDate: null,
-      availableDates: [],
-      totalArticlesFetched: 0,
       selectedArticleId: null,
-      isLoading: false,
-      isFetching: false,
-      error: null,
       selectedCountryCode: null,
-      countryArticles: [],
-      isLoadingCountry: false,
+      selectedDate: null,
     });
     vi.clearAllMocks();
   });
@@ -84,7 +95,7 @@ describe("MapPage", () => {
       dates: ["2026-02-23"],
     });
 
-    render(<MapPage />);
+    renderWithQuery(<MapPage />);
 
     await waitFor(() => {
       expect(getTodayNews).toHaveBeenCalledOnce();
@@ -93,30 +104,25 @@ describe("MapPage", () => {
   });
 
   it("ローディング中はスケルトンを表示する", () => {
-    useNewsStore.setState({ isLoading: true });
-
-    vi.mocked(getTodayNews).mockResolvedValue({
-      fetchDate: "2026-02-23",
-      totalArticlesFetched: 0,
-      articles: [],
-    });
+    // getTodayNews が未解決のままなら isLoading=true
+    vi.mocked(getTodayNews).mockReturnValue(new Promise(() => {}));
     vi.mocked(getAvailableDates).mockResolvedValue({ dates: [] });
 
-    render(<MapPage />);
+    renderWithQuery(<MapPage />);
     expect(screen.getByTestId("loading-screen")).toBeInTheDocument();
   });
 
   it("エラー時にエラーメッセージを表示する", async () => {
-    vi.mocked(getTodayNews).mockRejectedValue(new Error("ネットワークエラー"));
+    vi.mocked(getTodayNews).mockRejectedValue(
+      new Error("API error: 500 Internal Server Error"),
+    );
     vi.mocked(getAvailableDates).mockResolvedValue({ dates: [] });
 
-    render(<MapPage />);
+    renderWithQuery(<MapPage />);
 
     await waitFor(() => {
       expect(
-        screen.getByText(
-          "ニュースの取得に失敗しました。時間をおいて再試行してください。",
-        ),
+        screen.getByText("API error: 500 Internal Server Error"),
       ).toBeInTheDocument();
     });
   });
@@ -131,7 +137,7 @@ describe("MapPage", () => {
       dates: ["2026-02-23"],
     });
 
-    render(<MapPage />);
+    renderWithQuery(<MapPage />);
 
     await waitFor(() => {
       expect(screen.getByTestId("world-map")).toBeInTheDocument();
@@ -145,13 +151,15 @@ describe("MapPage", () => {
       totalArticlesFetched: 50,
       articles: mockArticles,
     });
-    vi.mocked(getAvailableDates).mockResolvedValue({ dates: ["2026-02-23"] });
+    vi.mocked(getAvailableDates).mockResolvedValue({
+      dates: ["2026-02-23"],
+    });
     vi.mocked(getNewsByCountry).mockResolvedValue({
       countryCode: "DE",
       articles: [],
     });
 
-    render(<MapPage />);
+    renderWithQuery(<MapPage />);
 
     await waitFor(() => {
       expect(screen.getByTestId("world-map")).toBeInTheDocument();
@@ -167,10 +175,12 @@ describe("MapPage", () => {
   });
 
   it("エラー時にリトライボタンが表示される", async () => {
-    vi.mocked(getTodayNews).mockRejectedValue(new Error("ネットワークエラー"));
+    vi.mocked(getTodayNews).mockRejectedValue(
+      new Error("API error: 500 Internal Server Error"),
+    );
     vi.mocked(getAvailableDates).mockResolvedValue({ dates: [] });
 
-    render(<MapPage />);
+    renderWithQuery(<MapPage />);
 
     await waitFor(() => {
       expect(
@@ -179,12 +189,14 @@ describe("MapPage", () => {
     });
   });
 
-  it("リトライボタンクリックでfetchTodayNewsが呼ばれる（fetchDateなし）", async () => {
+  it("リトライボタンクリックで再取得される", async () => {
     const user = userEvent.setup();
-    vi.mocked(getTodayNews).mockRejectedValue(new Error("ネットワークエラー"));
+    vi.mocked(getTodayNews).mockRejectedValueOnce(
+      new Error("API error: 500 Internal Server Error"),
+    );
     vi.mocked(getAvailableDates).mockResolvedValue({ dates: [] });
 
-    render(<MapPage />);
+    renderWithQuery(<MapPage />);
 
     await waitFor(() => {
       expect(
@@ -200,51 +212,11 @@ describe("MapPage", () => {
 
     await user.click(screen.getByRole("button", { name: "再読み込み" }));
 
-    // リトライ後にエラーが解消されることを確認
     await waitFor(() => {
       expect(
-        screen.queryByText(
-          "ニュースの取得に失敗しました。時間をおいて再試行してください。",
-        ),
+        screen.queryByText("API error: 500 Internal Server Error"),
       ).not.toBeInTheDocument();
     });
-  });
-
-  it("リトライボタンクリックでfetchNewsByDateが呼ばれる（fetchDateあり）", async () => {
-    const user = userEvent.setup();
-    vi.mocked(getTodayNews).mockResolvedValue({
-      fetchDate: "2026-02-23",
-      totalArticlesFetched: 50,
-      articles: mockArticles,
-    });
-    vi.mocked(getAvailableDates).mockResolvedValue({ dates: ["2026-02-23"] });
-
-    render(<MapPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("テスト記事1")).toBeInTheDocument();
-    });
-
-    // 日付変更でエラーを発生させる
-    vi.mocked(getNewsByDate).mockRejectedValue(new Error("日付エラー"));
-    useNewsStore.getState().fetchNewsByDate("2026-02-20");
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: "再読み込み" }),
-      ).toBeInTheDocument();
-    });
-
-    vi.mocked(getNewsByDate).mockResolvedValue({
-      fetchDate: "2026-02-23",
-      totalArticlesFetched: 50,
-      articles: mockArticles,
-    });
-
-    await user.click(screen.getByRole("button", { name: "再読み込み" }));
-
-    // fetchNewsByDate が fetchDate（2026-02-23）で呼ばれる
-    expect(getNewsByDate).toHaveBeenCalledWith("2026-02-23");
   });
 
   it("selectedCountryCodeがある場合、NewsPanelの代わりにCountryPanelを表示する", async () => {
@@ -253,22 +225,22 @@ describe("MapPage", () => {
       totalArticlesFetched: 50,
       articles: mockArticles,
     });
-    vi.mocked(getAvailableDates).mockResolvedValue({ dates: ["2026-02-23"] });
+    vi.mocked(getAvailableDates).mockResolvedValue({
+      dates: ["2026-02-23"],
+    });
     vi.mocked(getNewsByCountry).mockResolvedValue({
       countryCode: "JP",
       articles: [{ ...mockArticles[0], fetchDate: "2026-02-23" }],
     });
 
-    render(<MapPage />);
+    renderWithQuery(<MapPage />);
 
-    // データ取得待ち
     await waitFor(() => {
       expect(screen.getByText("テスト記事1")).toBeInTheDocument();
     });
 
-    // 国パネルを開く
+    // 国パネルを開く（Zustand UI state のみ変更）
     useNewsStore.getState().selectCountry("JP");
-    await useNewsStore.getState().fetchCountryNews("JP");
 
     await waitFor(() => {
       expect(screen.getByTestId("country-panel")).toBeInTheDocument();
