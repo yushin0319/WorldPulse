@@ -5,32 +5,46 @@ import DateNavigator from "../components/DateNavigator";
 import NewsPanel from "../components/NewsPanel";
 import NewsTooltip from "../components/NewsTooltip";
 import WorldMap from "../components/WorldMap";
+import {
+  useAvailableDates,
+  useCountryNews,
+  useNewsByDate,
+  useTodayNews,
+} from "../hooks/useNewsQueries";
 import { useNewsStore } from "../stores/newsStore";
 
 export default function MapPage() {
   const {
-    articles,
-    fetchDate,
-    availableDates,
     selectedArticleId,
-    isLoading,
-    isFetching,
-    error,
     selectedCountryCode,
-    countryArticles,
-    isLoadingCountry,
-    fetchTodayNews,
-    fetchNewsByDate,
-    fetchAvailableDates,
+    selectedDate,
     selectArticle,
     selectCountry,
-    fetchCountryNews,
+    selectDate,
   } = useNewsStore();
 
-  useEffect(() => {
-    fetchTodayNews();
-    fetchAvailableDates();
-  }, [fetchTodayNews, fetchAvailableDates]);
+  // サーバー状態は TanStack Query で管理
+  const todayQuery = useTodayNews();
+  const dateQuery = useNewsByDate(selectedDate);
+  const datesQuery = useAvailableDates();
+  const countryQuery = useCountryNews(selectedCountryCode);
+
+  // selectedDate が null なら today、あれば date クエリを使用
+  const activeQuery = selectedDate ? dateQuery : todayQuery;
+  const articles = activeQuery.data?.articles ?? [];
+  const fetchDate = activeQuery.data?.fetchDate ?? null;
+  const isLoading = todayQuery.isLoading;
+  const isFetching = selectedDate ? dateQuery.isFetching : false;
+  const error = activeQuery.error?.message ?? null;
+
+  // 日付一覧: todayの日付も含める
+  const availableDates = (() => {
+    const dates = datesQuery.data?.dates ?? [];
+    if (fetchDate && !dates.includes(fetchDate)) {
+      return [fetchDate, ...dates];
+    }
+    return dates;
+  })();
 
   // ページタイトル更新
   useEffect(() => {
@@ -41,6 +55,19 @@ export default function MapPage() {
   const panelRef = useRef<HTMLDivElement>(null);
   const [tooltipTop, setTooltipTop] = useState(0);
 
+  // 日付変更ハンドラ
+  const handleDateChange = useCallback(
+    (date: string) => {
+      // today の日付と同じならリセット（today クエリに戻す）
+      if (date === todayQuery.data?.fetchDate) {
+        selectDate(null);
+      } else {
+        selectDate(date);
+      }
+    },
+    [todayQuery.data?.fetchDate, selectDate],
+  );
+
   // マーカークリック→国パネルを開く
   const handleMarkerClick = useCallback(
     (id: string | null) => {
@@ -48,19 +75,17 @@ export default function MapPage() {
       const article = articles.find((a) => a.id === id);
       if (article) {
         selectCountry(article.countryCode);
-        fetchCountryNews(article.countryCode);
       }
     },
-    [articles, selectCountry, fetchCountryNews],
+    [articles, selectCountry],
   );
 
   // 国ポリゴンクリック→国パネルを開く
   const handleCountryClick = useCallback(
     (countryCode: string) => {
       selectCountry(countryCode);
-      fetchCountryNews(countryCode);
     },
-    [selectCountry, fetchCountryNews],
+    [selectCountry],
   );
 
   // 選択カードの位置を測定してツールチップの top を合わせる
@@ -100,7 +125,7 @@ export default function MapPage() {
         <DateNavigator
           currentDate={fetchDate}
           availableDates={availableDates}
-          onDateChange={fetchNewsByDate}
+          onDateChange={handleDateChange}
         />
       </header>
 
@@ -110,9 +135,7 @@ export default function MapPage() {
           <p>{error}</p>
           <button
             type="button"
-            onClick={() =>
-              fetchDate ? fetchNewsByDate(fetchDate) : fetchTodayNews()
-            }
+            onClick={() => activeQuery.refetch()}
             className="mt-2 rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-500"
           >
             再読み込み
@@ -144,8 +167,8 @@ export default function MapPage() {
           {selectedCountryCode ? (
             <CountryPanel
               countryCode={selectedCountryCode}
-              articles={countryArticles}
-              isLoading={isLoadingCountry}
+              articles={countryQuery.data?.articles ?? []}
+              isLoading={countryQuery.isLoading}
               onBack={() => selectCountry(null)}
             />
           ) : (
