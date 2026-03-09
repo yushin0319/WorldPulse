@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@theme {
+  --z-overlay: 500;
+  --z-tooltip: 1000;
+}
+
 body {
   margin: 0;
   padding: 0;

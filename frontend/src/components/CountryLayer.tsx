@@ -131,7 +131,7 @@ export default function CountryLayer({
 
   if (loadError) {
     return (
-      <div className="absolute inset-0 flex items-center justify-center z-[1000] pointer-events-none">
+      <div className="absolute inset-0 flex items-center justify-center z-tooltip pointer-events-none">
         <p className="text-white/80 bg-black/50 px-3 py-1 rounded text-sm">
           地図データの読み込みに失敗しました
         </p>

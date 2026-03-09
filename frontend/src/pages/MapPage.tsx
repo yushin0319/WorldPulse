@@ -146,7 +146,7 @@ export default function MapPage() {
       {/* メインコンテンツ: PC=横並び / スマホ=縦積み */}
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {/* 地図エリア */}
-        <div className="relative h-[50dvh] flex-shrink-0 lg:h-auto lg:flex-1">
+        <div className="relative h-[50dvh] shrink-0 lg:h-auto lg:flex-1">
           <WorldMap
             articles={articles}
             selectedArticleId={selectedArticleId}
@@ -156,7 +156,7 @@ export default function MapPage() {
           />
           {/* 日付変更時のオーバーレイ（全画面スピナーではない） */}
           {isFetching && (
-            <div className="absolute inset-0 z-[500] flex items-center justify-center bg-[#0a0f1a]/60">
+            <div className="absolute inset-0 z-overlay flex items-center justify-center bg-[#0a0f1a]/60">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-700 border-t-blue-500" />
             </div>
           )}
@@ -178,7 +178,7 @@ export default function MapPage() {
                 {selectedArticle && (
                   <div
                     key={selectedArticle.id}
-                    className="absolute right-full top-0 z-[1000] mr-4 hidden max-h-[calc(100%-2rem)] overflow-y-auto [scrollbar-width:none] lg:block"
+                    className="absolute right-full top-0 z-tooltip mr-4 hidden max-h-[calc(100%-2rem)] overflow-y-auto [scrollbar-width:none] lg:block"
                     style={{ top: tooltipTop }}
                   >
                     <NewsTooltip

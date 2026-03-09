@@ -4,10 +4,20 @@
 
 ## 技術スタック
 - Frontend: React 19 + TypeScript + Vite + Tailwind CSS + Framer Motion
+- State: TanStack Query v5（サーバー状態） + Zustand（UI状態のみ）
+- API Client: Hono RPC（`hc<AppType>()`で型安全）
 - Backend: Hono on Cloudflare Workers
+- ORM: Drizzle ORM（D1ドライバー、`worker/src/db/schema.ts`）
 - DB: Cloudflare D1 (SQLite)
 - Map: react-leaflet + Leaflet (CartoDB Dark Matter tiles)
 - AI: Gemini 2.5 Flash (日次RSS選定+翻訳)
+
+## アーキテクチャ
+- `shared/api.ts`: フロントエンド↔ワーカー間の型共有（`AppType` re-export）
+- `frontend/src/hooks/useNewsQueries.ts`: TanStack Queryフック（クエリキーファクトリパターン）
+- `frontend/src/stores/newsStore.ts`: UI状態のみ（selectedArticleId, selectedCountryCode, selectedDate）
+- `worker/src/db/schema.ts`: Drizzleスキーマ定義（`daily_news`, `news_articles`）
+- `worker/src/services/news.ts`: Drizzleクエリビルダーでデータアクセス
 
 ## 開発コマンド
 - Worker: `cd worker && npm run dev`
