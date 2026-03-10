@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   index,
   integer,
@@ -15,7 +16,7 @@ export const dailyNews = sqliteTable(
     totalArticlesFetched: integer("total_articles_fetched")
       .notNull()
       .default(0),
-    createdAt: text("created_at").notNull().default("(datetime('now'))"),
+    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
   },
   (table) => [index("idx_daily_news_date").on(table.fetchDate)],
 );
@@ -39,7 +40,7 @@ export const newsArticles = sqliteTable(
     longitude: real("longitude").notNull(),
     category: text("category").notNull().default("general"),
     publishedAt: text("published_at"),
-    createdAt: text("created_at").notNull().default("(datetime('now'))"),
+    createdAt: text("created_at").notNull().default(sql`(datetime('now'))`),
   },
   (table) => [
     uniqueIndex("uq_daily_rank").on(table.dailyNewsId, table.rank),
