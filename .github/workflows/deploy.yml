@@ -27,11 +27,11 @@ jobs:
       - name: Notify Discord on failure
         if: failure()
         run: |
-          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+          curl -s -X POST "$N8N_WEBHOOK_URL/discord-notify" \
             -H "Content-Type: application/json" \
-            -d "{\"content\":\"⚠ WorldPulse Worker デプロイ失敗\\nhttps://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
+            -d "{\"message\":\"⚠ WorldPulse Worker デプロイ失敗\nhttps://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
         env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
 
   deploy-frontend:
     runs-on: ubuntu-latest
@@ -63,8 +63,8 @@ jobs:
       - name: Notify Discord on failure
         if: failure()
         run: |
-          curl -s -X POST "$DISCORD_WEBHOOK_URL" \
+          curl -s -X POST "$N8N_WEBHOOK_URL/discord-notify" \
             -H "Content-Type: application/json" \
-            -d "{\"content\":\"⚠ WorldPulse Frontend デプロイ失敗\\nhttps://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
+            -d "{\"message\":\"⚠ WorldPulse Frontend デプロイ失敗\nhttps://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
         env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
