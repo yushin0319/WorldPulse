@@ -106,23 +106,24 @@ export async function saveDailyNews(
   const today = getJstDateString();
   const dailyId = crypto.randomUUID();
 
-  // INSERT OR IGNORE — fetch_dateのUNIQUE制約違反時はアトミックにスキップ
-  // Drizzle の onConflictDoNothing() を使用
+  // 重複チェック: 同日のデータが既に存在する場合はスキップ
   const db = drizzle(d1);
-  const result = await db
-    .insert(dailyNews)
-    .values({
-      id: dailyId,
-      fetchDate: today,
-      totalArticlesFetched: allArticles.length,
-    })
-    .onConflictDoNothing()
-    .returning({ id: dailyNews.id });
+  const existing = await db
+    .select({ id: dailyNews.id })
+    .from(dailyNews)
+    .where(eq(dailyNews.fetchDate, today))
+    .limit(1);
 
-  if (result.length === 0) {
+  if (existing.length > 0) {
     console.log(`Already processed ${today}, skipping`);
     return;
   }
+
+  await db.insert(dailyNews).values({
+    id: dailyId,
+    fetchDate: today,
+    totalArticlesFetched: allArticles.length,
+  });
 
   // news_articles をバッチで書込
   const articleValues = selected
@@ -149,7 +150,9 @@ export async function saveDailyNews(
     .filter((v): v is NonNullable<typeof v> => v !== null);
 
   if (articleValues.length > 0) {
-    await db.insert(newsArticles).values(articleValues);
+    // D1 はバインドパラメータ100個制限のため、1件ずつ insert を batch() で送信
+    const stmts = articleValues.map((v) => db.insert(newsArticles).values(v));
+    await db.batch(stmts as [(typeof stmts)[0], ...typeof stmts]);
   }
 }
 
