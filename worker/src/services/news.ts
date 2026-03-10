@@ -97,7 +97,7 @@ function sanitizeUrl(url: string): string {
   }
 }
 
-// 日次ニュース保存（INSERT OR IGNOREによるアトミック重複チェック + バッチ書込）
+// 日次ニュース保存（UNIQUE制約によるアトミック重複チェック + バッチ書込）
 export async function saveDailyNews(
   d1: D1Database,
   allArticles: RssArticle[],
@@ -106,24 +106,23 @@ export async function saveDailyNews(
   const today = getJstDateString();
   const dailyId = crypto.randomUUID();
 
-  // 重複チェック: 同日のデータが既に存在する場合はスキップ
+  // アトミックな重複チェック: fetch_date の UNIQUE 制約違反でスキップ
   const db = drizzle(d1);
-  const existing = await db
-    .select({ id: dailyNews.id })
-    .from(dailyNews)
-    .where(eq(dailyNews.fetchDate, today))
-    .limit(1);
-
-  if (existing.length > 0) {
-    console.log(`Already processed ${today}, skipping`);
-    return;
+  try {
+    await db.insert(dailyNews).values({
+      id: dailyId,
+      fetchDate: today,
+      totalArticlesFetched: allArticles.length,
+    });
+  } catch (e) {
+    // fetch_date の UNIQUE 制約違反 = 同日データ既存 → スキップ
+    // D1 本番は "UNIQUE constraint failed"、miniflare は "Failed query" を返す
+    if (e instanceof Error && /UNIQUE|Failed query/.test(e.message)) {
+      console.log(`Already processed ${today}, skipping`);
+      return;
+    }
+    throw e;
   }
-
-  await db.insert(dailyNews).values({
-    id: dailyId,
-    fetchDate: today,
-    totalArticlesFetched: allArticles.length,
-  });
 
   // news_articles をバッチで書込
   const articleValues = selected
