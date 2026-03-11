@@ -156,14 +156,14 @@ export default function MapPage() {
           />
           {/* 日付変更時のオーバーレイ（全画面スピナーではない） */}
           {isFetching && (
-            <div className="absolute inset-0 z-overlay flex items-center justify-center bg-[#0a0f1a]/60">
+            <div className="absolute inset-0 z-500 flex items-center justify-center bg-[#0a0f1a]/60">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-700 border-t-blue-500" />
             </div>
           )}
         </div>
 
         {/* パネル: PC=右サイドバー / スマホ=下半分 */}
-        <div className="relative min-h-0 flex-1 border-t border-gray-800 lg:w-80 lg:flex-none lg:border-l lg:border-t-0">
+        <div className="relative z-1000 min-h-0 flex-1 border-t border-gray-800 lg:w-80 lg:flex-none lg:border-l lg:border-t-0">
           {selectedCountryCode ? (
             <CountryPanel
               countryCode={selectedCountryCode}
@@ -178,7 +178,7 @@ export default function MapPage() {
                 {selectedArticle && (
                   <div
                     key={selectedArticle.id}
-                    className="absolute right-full top-0 z-tooltip mr-4 hidden max-h-[calc(100%-2rem)] overflow-y-auto [scrollbar-width:none] lg:block"
+                    className="absolute right-full top-0 z-1000 mr-4 hidden max-h-[calc(100%-2rem)] overflow-y-auto [scrollbar-width:none] lg:block"
                     style={{ top: tooltipTop }}
                   >
                     <NewsTooltip

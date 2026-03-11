@@ -1,9 +1,10 @@
 @import "tailwindcss";
 
-@theme {
-  --z-overlay: 500;
-  --z-tooltip: 1000;
-}
+/*
+ * Z-index スケール（Leaflet pane: tile=200, marker=600, popup=700）
+ * - z-500: オーバーレイ（地図エリア内のローディング）
+ * - z-1000: パネル＆ツールチップ（地図より前面に表示）
+ */
 
 body {
   margin: 0;
