@@ -36,3 +36,7 @@ coverage/
 shared/*.js
 shared/*.d.ts
 shared/*.d.ts.map
+
+# Seed data (generated from production)
+database/seed-data.sql
+database/.tmp-*
