@@ -1,6 +1,7 @@
 import { desc, eq, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { dailyNews, newsArticles } from "../db/schema";
+import { queryD1 } from "../lib/d1-wrapper";
 import type {
   AvailableDatesResponse,
   CountryNewsResponse,
@@ -17,15 +18,17 @@ export async function getTodayNews(
   d1: D1Database,
 ): Promise<DailyNewsResponse | null> {
   const db = drizzle(d1);
-  const rows = await db
-    .select({
-      id: dailyNews.id,
-      fetchDate: dailyNews.fetchDate,
-      totalArticlesFetched: dailyNews.totalArticlesFetched,
-    })
-    .from(dailyNews)
-    .orderBy(desc(dailyNews.fetchDate))
-    .limit(1);
+  const rows = await queryD1("daily_news.latest", () =>
+    db
+      .select({
+        id: dailyNews.id,
+        fetchDate: dailyNews.fetchDate,
+        totalArticlesFetched: dailyNews.totalArticlesFetched,
+      })
+      .from(dailyNews)
+      .orderBy(desc(dailyNews.fetchDate))
+      .limit(1),
+  );
 
   const row = rows[0];
   if (!row) return null;
@@ -44,15 +47,17 @@ export async function getNewsByDate(
   date: string,
 ): Promise<DailyNewsResponse | null> {
   const db = drizzle(d1);
-  const rows = await db
-    .select({
-      id: dailyNews.id,
-      fetchDate: dailyNews.fetchDate,
-      totalArticlesFetched: dailyNews.totalArticlesFetched,
-    })
-    .from(dailyNews)
-    .where(eq(dailyNews.fetchDate, date))
-    .limit(1);
+  const rows = await queryD1("daily_news.by_date", () =>
+    db
+      .select({
+        id: dailyNews.id,
+        fetchDate: dailyNews.fetchDate,
+        totalArticlesFetched: dailyNews.totalArticlesFetched,
+      })
+      .from(dailyNews)
+      .where(eq(dailyNews.fetchDate, date))
+      .limit(1),
+  );
 
   const row = rows[0];
   if (!row) return null;
@@ -70,11 +75,13 @@ export async function getAvailableDates(
   d1: D1Database,
 ): Promise<AvailableDatesResponse> {
   const db = drizzle(d1);
-  const rows = await db
-    .select({ fetchDate: dailyNews.fetchDate })
-    .from(dailyNews)
-    .orderBy(desc(dailyNews.fetchDate))
-    .limit(30);
+  const rows = await queryD1("daily_news.available_dates", () =>
+    db
+      .select({ fetchDate: dailyNews.fetchDate })
+      .from(dailyNews)
+      .orderBy(desc(dailyNews.fetchDate))
+      .limit(30),
+  );
 
   return { dates: rows.map((r) => r.fetchDate) };
 }
@@ -109,11 +116,13 @@ export async function saveDailyNews(
   // アトミックな重複チェック: fetch_date の UNIQUE 制約違反でスキップ
   const db = drizzle(d1);
   try {
-    await db.insert(dailyNews).values({
-      id: dailyId,
-      fetchDate: today,
-      totalArticlesFetched: allArticles.length,
-    });
+    await queryD1("daily_news.insert", () =>
+      db.insert(dailyNews).values({
+        id: dailyId,
+        fetchDate: today,
+        totalArticlesFetched: allArticles.length,
+      }),
+    );
   } catch (e) {
     // fetch_date の UNIQUE 制約違反 = 同日データ既存 → スキップ
     // D1 本番は "UNIQUE constraint failed"、miniflare は "Failed query" を返す
@@ -151,7 +160,9 @@ export async function saveDailyNews(
   if (articleValues.length > 0) {
     // D1 はバインドパラメータ100個制限のため、1件ずつ insert を batch() で送信
     const stmts = articleValues.map((v) => db.insert(newsArticles).values(v));
-    await db.batch(stmts as [(typeof stmts)[0], ...typeof stmts]);
+    await queryD1("news_articles.batch", () =>
+      db.batch(stmts as [(typeof stmts)[0], ...typeof stmts]),
+    );
   }
 }
 
@@ -163,17 +174,19 @@ export async function getRecentArticles(
   const today = getJstDateString();
   const db = drizzle(d1);
 
-  const rows = await db
-    .select({
-      titleJa: newsArticles.titleJa,
-      originalTitle: newsArticles.originalTitle,
-      fetchDate: dailyNews.fetchDate,
-    })
-    .from(newsArticles)
-    .innerJoin(dailyNews, eq(newsArticles.dailyNewsId, dailyNews.id))
-    .where(lt(dailyNews.fetchDate, today))
-    .orderBy(desc(dailyNews.fetchDate))
-    .limit(days * 10);
+  const rows = await queryD1("news_articles.recent", () =>
+    db
+      .select({
+        titleJa: newsArticles.titleJa,
+        originalTitle: newsArticles.originalTitle,
+        fetchDate: dailyNews.fetchDate,
+      })
+      .from(newsArticles)
+      .innerJoin(dailyNews, eq(newsArticles.dailyNewsId, dailyNews.id))
+      .where(lt(dailyNews.fetchDate, today))
+      .orderBy(desc(dailyNews.fetchDate))
+      .limit(days * 10),
+  );
 
   return rows.map((r) => ({
     titleJa: r.titleJa,
@@ -223,13 +236,15 @@ export async function getNewsByCountry(
 ): Promise<CountryNewsResponse> {
   const db = drizzle(d1);
 
-  const rows = await db
-    .select({ ...articleColumns, fetchDate: dailyNews.fetchDate })
-    .from(newsArticles)
-    .innerJoin(dailyNews, eq(newsArticles.dailyNewsId, dailyNews.id))
-    .where(eq(newsArticles.countryCode, countryCode))
-    .orderBy(desc(dailyNews.fetchDate), newsArticles.rank)
-    .limit(100);
+  const rows = await queryD1("news_articles.by_country", () =>
+    db
+      .select({ ...articleColumns, fetchDate: dailyNews.fetchDate })
+      .from(newsArticles)
+      .innerJoin(dailyNews, eq(newsArticles.dailyNewsId, dailyNews.id))
+      .where(eq(newsArticles.countryCode, countryCode))
+      .orderBy(desc(dailyNews.fetchDate), newsArticles.rank)
+      .limit(100),
+  );
 
   return {
     countryCode,
@@ -244,11 +259,13 @@ async function getArticlesByDailyId(
 ): Promise<NewsArticle[]> {
   const db = drizzle(d1);
 
-  const rows = await db
-    .select(articleColumns)
-    .from(newsArticles)
-    .where(eq(newsArticles.dailyNewsId, dailyId))
-    .orderBy(newsArticles.rank);
+  const rows = await queryD1("news_articles.by_daily_id", () =>
+    db
+      .select(articleColumns)
+      .from(newsArticles)
+      .where(eq(newsArticles.dailyNewsId, dailyId))
+      .orderBy(newsArticles.rank),
+  );
 
   return rows.map(toArticle);
 }
