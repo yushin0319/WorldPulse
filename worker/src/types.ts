@@ -20,6 +20,9 @@ export interface Env {
   CORS_ORIGIN: string;
   TRIGGER_SECRET?: string;
   DISCORD_WEBHOOK_URL?: string;
+  // L15: Sentry エラートラッキング（DSN は wrangler secret、release は CI で git SHA）
+  SENTRY_DSN?: string;
+  SENTRY_RELEASE?: string;
 }
 
 export interface RssArticle {

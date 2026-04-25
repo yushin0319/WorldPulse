@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { createSentry } from "./lib/sentry";
 import { newsRoutes } from "./routes/news";
 import { selectTopNews } from "./services/gemini";
 import { getRecentArticles, saveDailyNews } from "./services/news";
@@ -155,6 +156,8 @@ export default {
           const errorMsg = e instanceof Error ? e.message : String(e);
           const msg = `WorldPulse Cron failed (${elapsed}s): ${errorMsg}`;
           console.error(msg);
+          // L15: Sentry に送信 (DSN 未設定なら no-op)
+          createSentry(env, { context: ctx })?.captureException(e);
           if (env.DISCORD_WEBHOOK_URL)
             await notifyDiscord(env.DISCORD_WEBHOOK_URL, msg);
         }
