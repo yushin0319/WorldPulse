@@ -1,10 +1,17 @@
 name = "worldpulse-api"
 main = "src/index.ts"
 compatibility_date = "2026-02-01"
+# @sentry/cloudflare が Node.js 互換 API を要求するため
+compatibility_flags = ["nodejs_compat"]
 
 # Workers Observability: Cloudflare Dashboard でログ検索（無料枠で約7日保持）
 [observability]
 enabled = true
+
+# Sentry release tag (L15): wrangler deploy 時に CI が SENTRY_RELEASE 環境変数で
+# git SHA を渡し、@sentry/cloudflare が Issue に紐付ける
+[vars]
+CORS_ORIGIN = "https://worldpulse.pages.dev"
 
 # M11: level=error / exception を observability-tail Worker に流して Discord 通知
 [[tail_consumers]]
@@ -17,6 +24,3 @@ crons = ["0 15 * * *"]  # 15:00 UTC = 00:00 JST
 binding = "DB"
 database_name = "worldpulse"
 database_id = "4434a125-2ad3-406b-a83c-710c33fbfa71"
-
-[vars]
-CORS_ORIGIN = "https://worldpulse.pages.dev"

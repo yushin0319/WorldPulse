@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/cloudflare";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { newsRoutes } from "./routes/news";
@@ -109,11 +110,13 @@ async function notifyDiscord(
   }
 }
 
-export default {
+// L15: Sentry でラップ。SENTRY_DSN 未設定なら no-op (lazy init)。
+// release は CI が SENTRY_RELEASE 環境変数で git SHA を渡す。
+const handler = {
   fetch: app.fetch,
 
   async scheduled(
-    _event: ScheduledEvent,
+    _event: ScheduledController,
     env: Env,
     ctx: ExecutionContext,
   ): Promise<void> {
@@ -155,6 +158,8 @@ export default {
           const errorMsg = e instanceof Error ? e.message : String(e);
           const msg = `WorldPulse Cron failed (${elapsed}s): ${errorMsg}`;
           console.error(msg);
+          // L15: Sentry にも投げる（DSN 未設定なら withSentry が no-op 化）
+          Sentry.captureException(e);
           if (env.DISCORD_WEBHOOK_URL)
             await notifyDiscord(env.DISCORD_WEBHOOK_URL, msg);
         }
@@ -162,3 +167,13 @@ export default {
     );
   },
 };
+
+export default Sentry.withSentry(
+  (env: Env) => ({
+    dsn: env.SENTRY_DSN ?? "",
+    release: env.SENTRY_RELEASE ?? undefined,
+    tracesSampleRate: 0.1,
+    enabled: Boolean(env.SENTRY_DSN),
+  }),
+  handler,
+);

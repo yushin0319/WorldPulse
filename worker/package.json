@@ -9,6 +9,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@sentry/cloudflare": "^10.50.0",
     "drizzle-orm": "^0.45.2",
     "fast-xml-parser": "^5.5.7",
     "hono": "^4.12.14"
