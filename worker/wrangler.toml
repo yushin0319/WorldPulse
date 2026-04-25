@@ -2,6 +2,10 @@ name = "worldpulse-api"
 main = "src/index.ts"
 compatibility_date = "2026-02-01"
 
+# Workers Observability: Cloudflare Dashboard でログ検索（無料枠で約7日保持）
+[observability]
+enabled = true
+
 [triggers]
 crons = ["0 15 * * *"]  # 15:00 UTC = 00:00 JST
 
