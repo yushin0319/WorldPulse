@@ -6,6 +6,10 @@ compatibility_date = "2026-02-01"
 [observability]
 enabled = true
 
+# M11: level=error / exception を observability-tail Worker に流して Discord 通知
+[[tail_consumers]]
+service = "observability-tail"
+
 [triggers]
 crons = ["0 15 * * *"]  # 15:00 UTC = 00:00 JST
 
