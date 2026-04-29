@@ -57,6 +57,20 @@ export type AppType = typeof newsRoute;
 app.get("/health", (c) => c.json({ status: "ok" }));
 app.get("/", (c) => c.json({ app: "WorldPulse API", status: "ok" }));
 
+// L15-followup-2: HTTP 経路の未捕捉例外を Sentry に集約。個別 try/catch (trigger /
+// _sentry-test) はそのまま維持し、newsRoutes など内部 throw はここで拾う。
+// `c.executionCtx` は Hono 経由で取得、Toucan が waitUntil で送信を保持する。
+app.onError((err, c) => {
+  console.error("unhandled error:", err);
+  try {
+    createSentry(c.env, { context: c.executionCtx })?.captureException(err);
+  } catch (sentryErr) {
+    // Sentry 送信側の障害はレスポンスに影響させない
+    console.error("sentry capture failed:", sentryErr);
+  }
+  return c.json({ error: "Internal server error" }, 500);
+});
+
 // 手動トリガー用（認証必須）
 app.post("/api/trigger", async (c) => {
   const secret = c.req.header("X-Trigger-Secret");
