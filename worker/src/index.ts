@@ -90,7 +90,27 @@ app.post("/api/trigger", async (c) => {
     });
   } catch (e) {
     console.error("Trigger failed:", e);
+    // L15-followup: HTTP 経路の Sentry 配線
+    createSentry(c.env, { context: c.executionCtx })?.captureException(e);
     return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
+// 認証必須の Sentry verify endpoint (L15-followup)
+// X-Trigger-Secret 通過後に必ず throw → catch で Sentry に送信される
+app.post("/api/_sentry-test", async (c) => {
+  const secret = c.req.header("X-Trigger-Secret");
+  if (!c.env.TRIGGER_SECRET || secret !== c.env.TRIGGER_SECRET) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  try {
+    throw new Error(
+      "Sentry verification: intentional throw from /api/_sentry-test",
+    );
+  } catch (e) {
+    console.error("Sentry test throw:", e);
+    createSentry(c.env, { context: c.executionCtx })?.captureException(e);
+    return c.json({ error: "Internal server error", sentry: "sent" }, 500);
   }
 });
 
