@@ -23,12 +23,12 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      - name: Notify Discord on failure
+      - name: Notify obs-notify on failure
         if: failure()
         run: |
-          curl -s -X POST "$N8N_WEBHOOK_URL/discord-notify" \
+          curl -s -X POST "$N8N_WEBHOOK_URL/obs-notify" \
             -H "Content-Type: application/json" \
-            -d "{\"message\":\"⚠ WorldPulse Worker デプロイ失敗\nhttps://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
+            -d '{"severity":"warning","service":"github-actions","repo":"WorldPulse","subject":"⚠ WorldPulse Worker デプロイ失敗","summary":"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}","url":"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"}'
         env:
           N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
 
@@ -55,11 +55,11 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      - name: Notify Discord on failure
+      - name: Notify obs-notify on failure
         if: failure()
         run: |
-          curl -s -X POST "$N8N_WEBHOOK_URL/discord-notify" \
+          curl -s -X POST "$N8N_WEBHOOK_URL/obs-notify" \
             -H "Content-Type: application/json" \
-            -d "{\"message\":\"⚠ WorldPulse Frontend デプロイ失敗\nhttps://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
+            -d '{"severity":"warning","service":"github-actions","repo":"WorldPulse","subject":"⚠ WorldPulse Frontend デプロイ失敗","summary":"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}","url":"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"}'
         env:
           N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}

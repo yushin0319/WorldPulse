@@ -19,7 +19,8 @@ export interface Env {
   GEMINI_API_KEY: string;
   CORS_ORIGIN: string;
   TRIGGER_SECRET?: string;
-  DISCORD_WEBHOOK_URL?: string;
+  /** n8n の api/obs-notify エンドポイント (#529) */
+  OBS_NOTIFY_URL?: string;
   // L15: Sentry エラートラッキング（DSN は wrangler secret、release は CI で git SHA）
   SENTRY_DSN?: string;
   SENTRY_RELEASE?: string;

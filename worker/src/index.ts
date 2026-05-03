@@ -128,19 +128,28 @@ app.post("/api/_sentry-test", async (c) => {
   }
 });
 
-// Discord通知（エラー時のみ使用）
-async function notifyDiscord(
-  webhookUrl: string,
-  message: string,
+// 観測性通知（n8n obs-notify 経由 / #529）
+async function notifyObs(
+  obsUrl: string,
+  payload: {
+    severity: "critical" | "warning" | "info";
+    subject: string;
+    summary?: string;
+    raw_payload?: unknown;
+  },
 ): Promise<void> {
   try {
-    await fetch(webhookUrl, {
+    await fetch(obsUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: message }),
+      body: JSON.stringify({
+        ...payload,
+        service: "cf-worker",
+        repo: "WorldPulse",
+      }),
     });
   } catch (e) {
-    console.error("Discord notification failed:", e);
+    console.error("obs-notify failed:", e);
   }
 }
 
@@ -161,8 +170,12 @@ export default {
             const msg =
               "WorldPulse Cron: RSS取得0件。全フィードが失敗した可能性あり";
             console.error(msg);
-            if (env.DISCORD_WEBHOOK_URL)
-              await notifyDiscord(env.DISCORD_WEBHOOK_URL, msg);
+            if (env.OBS_NOTIFY_URL)
+              await notifyObs(env.OBS_NOTIFY_URL, {
+                severity: "warning",
+                subject: "WorldPulse Cron: RSS 取得 0 件",
+                summary: msg,
+              });
             return;
           }
 
@@ -175,8 +188,12 @@ export default {
           if (selected.length === 0) {
             const msg = `WorldPulse Cron: Gemini選定0件（リトライ含む）。RSS ${articles.length}件取得済み`;
             console.error(msg);
-            if (env.DISCORD_WEBHOOK_URL)
-              await notifyDiscord(env.DISCORD_WEBHOOK_URL, msg);
+            if (env.OBS_NOTIFY_URL)
+              await notifyObs(env.OBS_NOTIFY_URL, {
+                severity: "warning",
+                subject: "WorldPulse Cron: Gemini 選定 0 件",
+                summary: msg,
+              });
             return;
           }
 
@@ -192,8 +209,13 @@ export default {
           console.error(msg);
           // L15: Sentry に送信 (DSN 未設定なら no-op)
           createSentry(env, { context: ctx })?.captureException(e);
-          if (env.DISCORD_WEBHOOK_URL)
-            await notifyDiscord(env.DISCORD_WEBHOOK_URL, msg);
+          if (env.OBS_NOTIFY_URL)
+            await notifyObs(env.OBS_NOTIFY_URL, {
+              severity: "critical",
+              subject: "WorldPulse Cron failed",
+              summary: msg,
+              raw_payload: { error: errorMsg, elapsed_sec: Number(elapsed) },
+            });
         }
       })(),
     );
