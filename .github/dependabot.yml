@@ -1,7 +1,17 @@
 version: 2
 updates:
+  # root (frontend Astro) + worker (Cloudflare Worker) + frontend (Astro app) を
+  # 1 つの updates ブロックで multi-dir 監視。dependabot v2 の directories は
+  # 各 directory を独立にスキャンし、それぞれ別 PR を出す (まとめ PR ではない)。
+  #
+  # 背景: 2026-06-05 までは directory: "/" のみで worker/package.json と
+  # frontend/package.json の脆弱性が検知できていなかった (vitest CVE-2026-47429 が
+  # 該当)。3 dir 監視に切り替えて以後の脆弱性を取りこぼさない。
   - package-ecosystem: "npm"
-    directory: "/"
+    directories:
+      - "/"
+      - "/frontend"
+      - "/worker"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
