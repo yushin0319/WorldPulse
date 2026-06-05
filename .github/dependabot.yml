@@ -1,17 +1,28 @@
 version: 2
 updates:
-  # root (frontend Astro) + worker (Cloudflare Worker) + frontend (Astro app) を
-  # 1 つの updates ブロックで multi-dir 監視。dependabot v2 の directories は
-  # 各 directory を独立にスキャンし、それぞれ別 PR を出す (まとめ PR ではない)。
-  #
-  # 背景: 2026-06-05 までは directory: "/" のみで worker/package.json と
-  # frontend/package.json の脆弱性が検知できていなかった (vitest CVE-2026-47429 が
-  # 該当)。3 dir 監視に切り替えて以後の脆弱性を取りこぼさない。
+  # root (npm-only deps) + frontend (Astro app, vitest 4.x 系で運用中) は通常通り
+  # 全 update を受け入れる。frontend では vitest CVE-2026-47429 を ^4.1.0 へ patch
+  # update で解消済み (本 PR 同梱)。
   - package-ecosystem: "npm"
     directories:
       - "/"
       - "/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # worker (Cloudflare Worker) は vitest 3.x にロックしている。Vitest 4.0 の
+  # breaking changes (Spying rewrite / workspace→projects rename / Vite 5 drop /
+  # Reporter 変更) は移行コスト大。worker は CI で `vitest run` のみで
+  # `vitest --ui` は使わないため CVE-2026-47429 (UI server 起動時に exploit) の
+  # 実害リスクはゼロ。major bump を ignore して 3.x の minor/patch を受ける。
+  # Vitest 4 への移行は別タスクで計画的に。
+  - package-ecosystem: "npm"
+    directories:
       - "/worker"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "vitest"
+        update-types: ["version-update:semver-major"]
