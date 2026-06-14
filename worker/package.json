@@ -18,7 +18,7 @@
     "undici": "^7.24.1"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "0.16.14",
+    "@cloudflare/vitest-pool-workers": "0.12.21",
     "@cloudflare/workers-types": "^4.20250214.0",
     "typescript": "^6.0.3",
     "vitest": "~3.2.6",

@@ -17,10 +17,13 @@ updates:
   # `vitest --ui` は使わないため CVE-2026-47429 (UI server 起動時に exploit) の
   # 実害リスクはゼロ。major bump を ignore して 3.x の minor/patch を受ける。
   #
-  # vitest-pool-workers も 0.16.14 に固定 (package.json) し dependabot 更新を
-  # ignore する。0.16.15 (最初の vitest4 対応版) は workerd 上で @vitest/utils の
-  # assertTypes 解決に失敗し (jsg.SyntaxError) テストが起動しない upstream バグが
-  # あるため。vitest4 + pool-workers 移行は upstream 修正後に別タスクで対応。
+  # vitest-pool-workers は 0.12.21 (vitest3 対応・最終版) に固定し dependabot 更新を
+  # ignore する。0.16.x は vitest ^4.1.0 必須・config API も cloudflareTest plugin
+  # 方式に刷新済みで、さらに 0.16.15 は workerd 上で @vitest/utils の assertTypes
+  # 解決に失敗する upstream バグがある。worker を vitest3 のまま運用する間は
+  # 0.12.21 が動作する唯一の版。vitest4 + pool-workers 移行は別タスクで対応。
+  # (Dependabot #112 は package.json のみ 0.16.14 に上げ bun.lock 未更新で
+  #  マージされ、CI は lock の 0.12.21 でテストしていた不整合状態だった。)
   - package-ecosystem: "npm"
     directories:
       - "/worker"
