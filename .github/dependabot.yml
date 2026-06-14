@@ -11,12 +11,23 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 5
 
-  # worker (Cloudflare Worker) も vitest 4.x へ移行済み。vitest-pool-workers
-  # 0.16.x が vitest ^4.1.0 を peer 必須とし、config API も cloudflareTest
-  # plugin 方式に刷新されたため、3.x ロックを解除して通常 update を受ける。
+  # worker (Cloudflare Worker) は vitest 3.x にロックしている。Vitest 4.0 の
+  # breaking changes (Spying rewrite / workspace→projects rename / Vite 5 drop /
+  # Reporter 変更) は移行コスト大。worker は CI で `vitest run` のみで
+  # `vitest --ui` は使わないため CVE-2026-47429 (UI server 起動時に exploit) の
+  # 実害リスクはゼロ。major bump を ignore して 3.x の minor/patch を受ける。
+  #
+  # vitest-pool-workers も 0.16.14 に固定 (package.json) し dependabot 更新を
+  # ignore する。0.16.15 (最初の vitest4 対応版) は workerd 上で @vitest/utils の
+  # assertTypes 解決に失敗し (jsg.SyntaxError) テストが起動しない upstream バグが
+  # あるため。vitest4 + pool-workers 移行は upstream 修正後に別タスクで対応。
   - package-ecosystem: "npm"
     directories:
       - "/worker"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "vitest"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@cloudflare/vitest-pool-workers"
