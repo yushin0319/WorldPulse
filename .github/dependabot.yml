@@ -1,36 +1,15 @@
 version: 2
 updates:
-  # root (npm-only deps) + frontend (Astro app, vitest 4.x 系で運用中) は通常通り
-  # 全 update を受け入れる。frontend では vitest CVE-2026-47429 を ^4.1.0 へ patch
-  # update で解消済み (本 PR 同梱)。
+  # root / frontend / worker とも vitest 4.x で運用し、全 update を受け入れる。
+  # worker の vitest-pool-workers 0.16.x (vitest4) は 0.16.15 に workerd 上で
+  # @vitest/utils の assertTypes を解決できない upstream バグがあるが、
+  # worker/vitest.config.ts の deps.optimizer.ssr で @vitest/utils を
+  # pre-bundle して回避済み。
   - package-ecosystem: "npm"
     directories:
       - "/"
       - "/frontend"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
-
-  # worker (Cloudflare Worker) は vitest 3.x にロックしている。Vitest 4.0 の
-  # breaking changes (Spying rewrite / workspace→projects rename / Vite 5 drop /
-  # Reporter 変更) は移行コスト大。worker は CI で `vitest run` のみで
-  # `vitest --ui` は使わないため CVE-2026-47429 (UI server 起動時に exploit) の
-  # 実害リスクはゼロ。major bump を ignore して 3.x の minor/patch を受ける。
-  #
-  # vitest-pool-workers は 0.12.21 (vitest3 対応・最終版) に固定し dependabot 更新を
-  # ignore する。0.16.x は vitest ^4.1.0 必須・config API も cloudflareTest plugin
-  # 方式に刷新済みで、さらに 0.16.15 は workerd 上で @vitest/utils の assertTypes
-  # 解決に失敗する upstream バグがある。worker を vitest3 のまま運用する間は
-  # 0.12.21 が動作する唯一の版。vitest4 + pool-workers 移行は別タスクで対応。
-  # (Dependabot #112 は package.json のみ 0.16.14 に上げ bun.lock 未更新で
-  #  マージされ、CI は lock の 0.12.21 でテストしていた不整合状態だった。)
-  - package-ecosystem: "npm"
-    directories:
       - "/worker"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
-    ignore:
-      - dependency-name: "vitest"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "@cloudflare/vitest-pool-workers"

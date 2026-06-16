@@ -18,10 +18,10 @@
     "undici": "^7.24.1"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "0.12.21",
+    "@cloudflare/vitest-pool-workers": "^0.16.15",
     "@cloudflare/workers-types": "^4.20250214.0",
     "typescript": "^6.0.3",
-    "vitest": "~3.2.6",
+    "vitest": "^4.1.0",
     "wrangler": "^4.69.0"
   }
 }
