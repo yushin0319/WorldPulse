@@ -51,10 +51,14 @@ describe("selectTopNews", () => {
     );
 
     const promise = selectTopNews([], "test-key");
+    // reject ハンドラを advance より先に登録する。fake timer の advance 中に
+    // promise が reject されると、expect().rejects 登録前に settle して
+    // vitest4 が一瞬 unhandled rejection と判定するため。
+    const expectation = expect(promise).rejects.toThrow();
     // 1回目タイムアウト(180s) + 2回目タイムアウト(180s)
     await vi.advanceTimersByTimeAsync(180_001);
     await vi.advanceTimersByTimeAsync(180_001);
-    await expect(promise).rejects.toThrow();
+    await expectation;
   });
 
   it("179秒では応答できればタイムアウトしない", async () => {
