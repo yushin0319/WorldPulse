@@ -12,20 +12,42 @@ describe("selectTopNews", () => {
     let capturedUrl: string | undefined;
     let capturedHeaders: Record<string, string> | undefined;
 
+    // 有効な結果を返して1回目で早期returnさせ、リトライ前バックオフを回避する
+    const validResult = JSON.stringify([
+      {
+        index: 0,
+        country_code: "US",
+        lat: 40,
+        lng: -74,
+        title_ja: "テスト",
+        summary_ja: "テスト要約",
+        category: "general",
+      },
+    ]);
+
     vi.stubGlobal("fetch", (url: string, opts: RequestInit) => {
       capturedUrl = url;
       capturedHeaders = opts.headers as Record<string, string>;
       return Promise.resolve(
         new Response(
           JSON.stringify({
-            candidates: [{ content: { parts: [{ text: "[]" }] } }],
+            candidates: [{ content: { parts: [{ text: validResult }] } }],
           }),
           { status: 200 },
         ),
       );
     });
 
-    await selectTopNews([], "my-secret-key");
+    const articles = [
+      {
+        title: "Test",
+        snippet: "test",
+        url: "https://example.com",
+        source: "Test",
+        publishedAt: null,
+      },
+    ];
+    await selectTopNews(articles, "my-secret-key");
 
     expect(capturedUrl).toBeDefined();
     expect(capturedUrl).not.toContain("my-secret-key");
@@ -55,8 +77,9 @@ describe("selectTopNews", () => {
     // promise が reject されると、expect().rejects 登録前に settle して
     // vitest4 が一瞬 unhandled rejection と判定するため。
     const expectation = expect(promise).rejects.toThrow();
-    // 1回目タイムアウト(180s) + 2回目タイムアウト(180s)
+    // 1回目タイムアウト(180s) + リトライ前バックオフ(10s) + 2回目タイムアウト(180s)
     await vi.advanceTimersByTimeAsync(180_001);
+    await vi.advanceTimersByTimeAsync(10_000);
     await vi.advanceTimersByTimeAsync(180_001);
     await expectation;
   });
