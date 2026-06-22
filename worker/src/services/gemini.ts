@@ -14,6 +14,10 @@ const GEMINI_API_URL =
 // Geminiに送る記事数の上限（トークン効率のため）
 const MAX_ARTICLES_FOR_PROMPT = 100;
 
+// リトライ前の待機時間（ms）。524 等の一過性高負荷エラーは即再送だと
+// 同じ条件で再び失敗するため、間隔を空けて Gemini 側の負荷解消を待つ。
+const RETRY_BACKOFF_MS = 10_000;
+
 // プロンプトインジェクション対策: title/snippetのサニタイズ
 export function sanitizeForPrompt(text: string): string {
   return (
@@ -191,7 +195,7 @@ async function callGeminiApi(
   }
 }
 
-// Gemini API呼出（60秒タイムアウト + 1回リトライ）
+// Gemini API呼出（180秒タイムアウト + バックオフ付き1回リトライ）
 export async function selectTopNews(
   articles: RssArticle[],
   apiKey: string,
@@ -216,6 +220,9 @@ export async function selectTopNews(
       error: e instanceof Error ? e.message : String(e),
     });
   }
+
+  // 524 等の一過性エラーは即再送だと吸収できないため、リトライ前にバックオフ待機
+  await new Promise((resolve) => setTimeout(resolve, RETRY_BACKOFF_MS));
 
   // 2回目（リトライ）: 180秒タイムアウト
   try {
