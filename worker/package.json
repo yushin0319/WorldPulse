@@ -10,18 +10,18 @@
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",
-    "fast-xml-parser": "^5.5.7",
-    "hono": "^4.12.14",
+    "fast-xml-parser": "^5.9.3",
+    "hono": "^4.12.27",
     "toucan-js": "^4.1.1"
   },
   "overrides": {
     "undici": "^7.24.1"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.16.15",
-    "@cloudflare/workers-types": "^4.20250214.0",
+    "@cloudflare/vitest-pool-workers": "^0.16.20",
+    "@cloudflare/workers-types": "^4.20260702.1",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.0",
-    "wrangler": "^4.69.0"
+    "vitest": "^4.1.9",
+    "wrangler": "^4.107.0"
   }
 }
