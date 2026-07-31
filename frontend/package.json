@@ -14,7 +14,7 @@
     "framer-motion": "^12.34.3",
     "hono": "^4.12.12",
     "leaflet": "1.9",
-    "react": "^19.2.0",
+    "react": "^19.2.8",
     "react-dom": "^19.2.0",
     "react-leaflet": "^5.0.0",
     "zustand": "^5.0.11"
@@ -27,7 +27,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^26.1.0",
-    "@types/react": "^19.2.7",
+    "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
     "happy-dom": "^20.8.9",
