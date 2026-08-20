@@ -7,7 +7,7 @@
       "dependencies": {
         "drizzle-orm": "^0.45.2",
         "fast-xml-parser": "^5.10.1",
-        "hono": "^4.12.34",
+        "hono": "^4.13.2",
         "toucan-js": "^4.1.1",
       },
       "devDependencies": {
@@ -323,7 +323,7 @@
 
     "fsevents": ["fsevents@2.3.3", "", { "os": "darwin" }, "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw=="],
 
-    "hono": ["hono@4.12.34", "", {}, "sha512-GqXJqY/xJkJmuloTrnV1ZEXG3fqte+VjkUqoRNZXcrUidiUOP4fMSIHHY4tsqZBK++kVyWmt/AAfSUuy57/eSA=="],
+    "hono": ["hono@4.13.2", "", {}, "sha512-JydRilDRkYBQMt9qR9U92mXxmbGqsqSn/IKOrh4e7/gEbn+0zSr8igTu0obwJoNGN4sez28DIql7FBHWydoJpA=="],
 
     "is-unsafe": ["is-unsafe@2.0.0", "", {}, "sha512-2LdV822R+wmI86unXA93WCFpL6g+av8ynWk0nrHyJqGop5VoocYsSLFgN8jrfalT6iGeLNM4KXuVSsULP53kEA=="],
 
