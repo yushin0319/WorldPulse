@@ -11,7 +11,7 @@
   "dependencies": {
     "drizzle-orm": "^0.45.2",
     "fast-xml-parser": "^5.11.0",
-    "hono": "^4.13.4",
+    "hono": "^4.13.5",
     "toucan-js": "^4.1.1"
   },
   "overrides": {
