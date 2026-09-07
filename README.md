@@ -7,13 +7,14 @@
 
 ## スタック
 
-- Frontend: React 19 + TypeScript + Vite + Tailwind CSS v4 + Framer Motion + Leaflet
+- Frontend: React 19 + TypeScript + Vite 8 + Tailwind CSS v4 + Framer Motion + Leaflet
 - 状態管理: TanStack Query v5（サーバー状態）+ Zustand（UI 状態）
 - API Client: Hono RPC（型安全な `hc<AppType>()`）
 - Worker: Hono on Cloudflare Workers + Drizzle ORM + toucan-js（Sentry）
 - DB: Cloudflare D1（`daily_news` / `news_articles`）
 - AI: Gemini 2.5 Flash（structured JSON output）
-- 観測: Sentry / observability-tail (tail_consumers) / Workers Observability
+- 観測: Sentry（toucan-js）/ observability-tail (tail_consumers) → n8n obs-notify / Workers Observability
+- パッケージマネージャ: Bun（`worker/bun.lock` / `frontend/bun.lock`）。テストは vitest 4 +（worker は `@cloudflare/vitest-pool-workers`）
 
 ## 構成
 
@@ -35,8 +36,14 @@
 | `GET /api/news/country/:code` | 30分 | 国別履歴（ISO 3166-1 alpha-2） |
 | `GET /api/news/:date` | 1時間 | 指定日のニュース |
 | `GET /health` | — | 死活 |
+| `POST /api/trigger` | — | RSS 取得〜D1 保存の手動実行（`X-Trigger-Secret` 必須） |
+| `POST /api/_sentry-test` | — | Sentry 疎通確認用に意図的に throw する（`X-Trigger-Secret` 必須） |
 
 `/api/*` は IP 単位の rate limit（60 req/min、Worker isolate 内 in-memory）と CORS（`worldpulse.pages.dev` のみ許可）が適用される。
+
+### Sentry への例外集約
+
+`app.onError` で HTTP 経路の未捕捉例外をまとめて `captureException` する（`worker/src/index.ts:63`）。`/api/trigger` と `/api/_sentry-test` は個別の try/catch も持っており、Sentry 送信自体が失敗してもレスポンスには影響させない。Gemini 呼び出しは失敗時に `RETRY_BACKOFF_MS` の待機を挟んでからリトライする。
 
 ## 開発
 
