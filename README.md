@@ -14,7 +14,7 @@
 - DB: Cloudflare D1（`daily_news` / `news_articles`）
 - AI: Gemini 2.5 Flash（structured JSON output）
 - 観測: Sentry（toucan-js）/ observability-tail (tail_consumers) → n8n obs-notify / Workers Observability
-- パッケージマネージャ: Bun（`worker/bun.lock` / `frontend/bun.lock`）。テストは vitest 4 +（worker は `@cloudflare/vitest-pool-workers`）
+- パッケージマネージャ: Bun（`worker/bun.lock` / `frontend/bun.lock`）。テストは vitest（worker は `@cloudflare/vitest-plugin`）
 
 ## 構成
 
