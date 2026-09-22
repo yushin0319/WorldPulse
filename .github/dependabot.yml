@@ -1,10 +1,9 @@
 version: 2
 updates:
-  # root / frontend / worker とも vitest 4.x で運用し、全 update を受け入れる。
-  # worker の vitest-pool-workers 0.16.x (vitest4) は 0.16.15 に workerd 上で
-  # @vitest/utils の assertTypes を解決できない upstream バグがあるが、
-  # worker/vitest.config.ts の deps.optimizer.ssr で @vitest/utils を
-  # pre-bundle して回避済み。
+  # root / frontend / worker の全 update を受け入れる。
+  # worker は @cloudflare/vitest-plugin (旧 @cloudflare/vitest-pool-workers) で
+  # workerd 上でテストする。vitest 5 との組み合わせは worker/vitest.config.ts の
+  # new_module_registry フラグが前提 (理由は同ファイルのコメント参照)。
   - package-ecosystem: "bun"
     directories:
       - "/"
@@ -35,7 +34,10 @@ updates:
           - "vite"
           - "@vitejs/*"
       # vitest 本体と @vitest/* は peer をバージョン厳密指定するため 1 PR にまとめる。
+      # @cloudflare/vitest-plugin も vitest を peer に持つので同じ group に入れる
+      # (#196: worker の vitest 5 単独 bump で worker-test が落ちた)。
       vitest:
         patterns:
           - "vitest"
           - "@vitest/*"
+          - "@cloudflare/vitest-plugin"
