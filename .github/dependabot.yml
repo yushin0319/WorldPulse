@@ -13,3 +13,29 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    groups:
+      # react と react-dom は完全に同一バージョンである必要がある
+      # (不一致だと react-dom が "Incompatible React versions" で throw する)。
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      # hono は /frontend と /worker の両方に入っており、frontend は worker の
+      # AppType を hc<AppType>() で参照する。別 PR で片方だけ上がるとバージョン差で
+      # 型が合わず frontend-test が TS2344 で落ちる (2026-09-03〜09-10 に実際に発生)。
+      hono:
+        patterns:
+          - "hono"
+          - "@hono/*"
+      # vite と @vitejs/* は peer で結びついている (plugin-react 6 の peer は vite ^8)。
+      vite:
+        patterns:
+          - "vite"
+          - "@vitejs/*"
+      # vitest 本体と @vitest/* は peer をバージョン厳密指定するため 1 PR にまとめる。
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
