@@ -51,7 +51,11 @@ export function buildPrompt(
   let dedupSection = "";
   if (previousArticles && previousArticles.length > 0) {
     const prevList = previousArticles
-      .map((p) => `- [${p.fetchDate}] ${p.originalTitle} (${p.titleJa})`)
+      // 過去記事も外部 RSS 由来のためサニタイズする（候補記事リストと同じ扱い）
+      .map(
+        (p) =>
+          `- [${p.fetchDate}] ${sanitizeForPrompt(p.originalTitle)} (${sanitizeForPrompt(p.titleJa)})`,
+      )
       .join("\n");
     const dayCount = new Set(previousArticles.map((p) => p.fetchDate)).size;
     dedupSection = `
