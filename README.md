@@ -14,7 +14,7 @@
 - DB: Cloudflare D1（`daily_news` / `news_articles`）
 - AI: Gemini 2.5 Flash（structured JSON output）
 - 観測: Sentry（toucan-js）/ observability-tail (tail_consumers) → n8n obs-notify / Workers Observability
-- パッケージマネージャ: Bun（`worker/bun.lock` / `frontend/bun.lock`）。テストは vitest（worker は `@cloudflare/vitest-plugin`）
+- パッケージマネージャ: Bun（ルート / `worker/` / `frontend/` にそれぞれ `bun.lock`。ルートは Biome・Husky・lint-staged のみ）。テストは vitest（worker は `@cloudflare/vitest-plugin`）
 
 ## 構成
 
@@ -60,7 +60,7 @@ cd frontend && bun install && bun run dev
 ## テスト・Lint
 
 ```bash
-cd worker && bun test
+cd worker && bun run test    # vitest run（CI と同じ）。`bun test` は Bun 内蔵ランナーで vitest.config.ts を読まない
 cd frontend && bunx vitest run
 bunx @biomejs/biome check .
 ```
