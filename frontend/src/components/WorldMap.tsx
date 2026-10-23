@@ -2,15 +2,12 @@ import { useEffect } from "react";
 import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import type L from "leaflet";
+import { buildTileUrl, TILE_ATTRIBUTION } from "../constants/mapTiles";
 import type { NewsArticle } from "../types/api";
 import CountryLayer from "./CountryLayer";
 import NewsMarker from "./NewsMarker";
 
-// ラベルなしダークタイル
-const TILE_URL =
-  "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png";
-const TILE_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+const TILE_URL = buildTileUrl(import.meta.env.VITE_CARTO_KEY);
 
 // 南極・北極をトリミング（緯度 -60 〜 75）
 const MAX_BOUNDS: L.LatLngBoundsExpression = [

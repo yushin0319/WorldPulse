@@ -50,6 +50,8 @@ jobs:
         working-directory: frontend
         env:
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          # CARTO の地図タイルの無料キー (https://carto.com/basemaps/apikey)。無いと透かし画像になる
+          VITE_CARTO_KEY: ${{ secrets.VITE_CARTO_KEY }}
       - run: bunx wrangler pages deploy dist --project-name=worldpulse --commit-message="deploy ${{ github.sha }}"
         working-directory: frontend
         env:
