@@ -7,7 +7,7 @@
 
 ## スタック
 
-- Frontend: React 19 + TypeScript + Vite 8 + Tailwind CSS v4 + Framer Motion + Leaflet
+- Frontend: React 19 + TypeScript + Vite 8 + Tailwind CSS v4 + Framer Motion + Leaflet（react-leaflet、地図タイルは CARTO `dark_nolabels`。無料キー `VITE_CARTO_KEY` が必要）
 - 状態管理: TanStack Query v5（サーバー状態）+ Zustand（UI 状態）
 - API Client: Hono RPC（型安全な `hc<AppType>()`）
 - Worker: Hono on Cloudflare Workers + Drizzle ORM + toucan-js（Sentry）
@@ -32,7 +32,7 @@
 | Endpoint | キャッシュ | 用途 |
 |---|---|---|
 | `GET /api/news/today` | 5分 + swr 1h | 当日のニュース |
-| `GET /api/news/dates` | 5分 | データ存在日の一覧 |
+| `GET /api/news/dates` | 5分 + swr 1h | データ存在日の一覧 |
 | `GET /api/news/country/:code` | 30分 | 国別履歴（ISO 3166-1 alpha-2） |
 | `GET /api/news/:date` | 1時間 | 指定日のニュース |
 | `GET /health` | — | 死活 |
@@ -48,14 +48,26 @@
 ## 開発
 
 ```bash
-# Worker（本番 D1 に読み取り接続）
+# Worker（--remote は本番 D1 に接続する。/api/trigger 等の書き込みも本番に反映される）
 cd worker && bun install && bunx wrangler dev --remote --port 8787
 
-# Frontend（vite proxy 経由で Worker へ）
+# Frontend（VITE_API_BASE_URL 未設定なら http://localhost:8787 を直接叩く）
 cd frontend && bun install && bun run dev
 ```
 
-ローカル D1 シード手順・CORS 回避用 vite proxy 設定は [CLAUDE.md](CLAUDE.md) を参照。
+Worker の CORS は `worldpulse.pages.dev` のみ許可なので、ローカルでは vite proxy を足して `VITE_API_BASE_URL=`（空）にする。手順とローカル D1 シードは [CLAUDE.md](CLAUDE.md) を参照。
+
+### 環境変数・シークレット
+
+| 名前 | 置き場所 | 用途 |
+|---|---|---|
+| `GEMINI_API_KEY` | Worker secret | 記事の選定・翻訳 |
+| `TRIGGER_SECRET` | Worker secret | `/api/trigger` / `/api/_sentry-test` の認証 |
+| `OBS_NOTIFY_URL` | Worker secret（任意） | cron 失敗時の obs-notify 通知先 |
+| `SENTRY_DSN` | Worker secret（任意） | Sentry 送信先（`SENTRY_RELEASE` は deploy 時に git SHA を `--var` で渡す） |
+| `CORS_ORIGIN` | `worker/wrangler.toml` の `[vars]` | CORS 許可オリジン |
+| `VITE_API_BASE_URL` | Frontend ビルド時（GitHub secret） | Worker の URL |
+| `VITE_CARTO_KEY` | Frontend ビルド時（GitHub secret） | CARTO 地図タイルの無料キー。無いとタイルが「API KEY REQUIRED」の透かし画像になる |
 
 ## テスト・Lint
 
@@ -67,17 +79,17 @@ bunx @biomejs/biome check .
 
 ## デプロイ
 
-main マージで自動（`.github/workflows/deploy.yml` が Worker → Frontend の順に走る）。手動なら:
+main への push で `test.yml` が成功すると、`.github/workflows/deploy.yml` が Worker と Frontend を並列でデプロイする（2 ジョブに依存関係は無い）。失敗時は obs-notify に warning で通知。手動なら:
 
 ```bash
 cd worker && bunx wrangler deploy
-cd frontend && bun run build && bunx wrangler pages deploy dist
+cd frontend && VITE_API_BASE_URL=<Worker の URL> VITE_CARTO_KEY=<キー> bun run build && bunx wrangler pages deploy dist --project-name=worldpulse
 ```
 
 ## 運用ルール
 
 - main 直 commit 禁止、必ず PR 経由
-- `GEMINI_API_KEY` は `wrangler secret put` のみ。コードにコミットしない
+- `GEMINI_API_KEY` などの Worker secret は `wrangler secret put` のみ。コードにコミットしない
 - ローカル開発で vite proxy を `vite.config.ts` に追加した場合、コミット前に戻す
 - 観測: `tail-errors.py --since 24h --script worldpulse-api` でエラー履歴を取得
 
