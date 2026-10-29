@@ -12,7 +12,7 @@
   "dependencies": {
     "@tanstack/react-query": "^5.104.4",
     "framer-motion": "^14.2.0",
-    "hono": "^4.13.13",
+    "hono": "^4.13.14",
     "leaflet": "1.9",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
