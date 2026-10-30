@@ -7,11 +7,18 @@ import { defineConfig } from "vitest/config";
 // workerd 起動時に SyntaxError: Unexpected identifier 'file' になる
 // (cloudflare/workers-sdk#15618)。new_module_registry では置換しない fallback
 // (V2) を通るので、テスト実行時だけこのフラグを付ける。本番 (wrangler.toml) は変更しない。
+//
+// wrangler.toml の Service binding `OBS` (observability-tail) はテスト環境に相手の Worker が
+// 無いと workerd が起動しないので、何もしない応答に差し替える。
+// 送信内容を確かめるテストは env.OBS に自前の偽物を渡す (src/__tests__/obs-notify.test.ts)。
 export default defineConfig({
   plugins: [
     cloudflareTest({
       wrangler: { configPath: "./wrangler.toml" },
-      miniflare: { compatibilityFlags: ["new_module_registry"] },
+      miniflare: {
+        compatibilityFlags: ["new_module_registry"],
+        serviceBindings: { OBS: () => new Response(null, { status: 204 }) },
+      },
     }),
   ],
 });

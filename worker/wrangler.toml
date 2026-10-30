@@ -6,8 +6,14 @@ compatibility_date = "2026-02-01"
 [observability]
 enabled = true
 
-# M11: level=error / exception を observability-tail Worker に流して Discord 通知
+# M11: level=error / exception を observability-tail Worker に流して Notion 観測性 DB に記録
 [[tail_consumers]]
+service = "observability-tail"
+
+# cron の異常を observability-tail の POST /obs-notify に送る (src/lib/obs-notify.ts)。
+# 同じアカウントの Worker 同士は workers.dev の URL に fetch できない (error 1042) ので Service binding で呼ぶ
+[[services]]
+binding = "OBS"
 service = "observability-tail"
 
 [triggers]

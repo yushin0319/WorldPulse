@@ -6,6 +6,10 @@ on:
     types: [completed]
     branches: [main]
 
+env:
+  # 観測性イベントの受け口 (observability-tail Worker の POST /obs-notify)。デプロイ失敗をここに送る
+  OBS_NOTIFY_ENDPOINT: https://observability-tail.y-fudo.workers.dev/obs-notify
+
 jobs:
   deploy-worker:
     runs-on: ubuntu-latest
@@ -26,11 +30,16 @@ jobs:
       - name: Notify obs-notify on failure
         if: failure()
         run: |
-          curl -s -X POST "$N8N_WEBHOOK_URL/obs-notify" \
+          if [ -z "$OBS_WEBHOOK_SECRET" ]; then
+            echo "::warning::OBS_WEBHOOK_SECRET が未設定のため obs-notify に送りません"
+            exit 0
+          fi
+          curl -sS --fail-with-body --max-time 30 -X POST "$OBS_NOTIFY_ENDPOINT" \
             -H "Content-Type: application/json" \
+            -H "X-Webhook-Secret: $OBS_WEBHOOK_SECRET" \
             -d '{"severity":"warning","service":"github-actions","repo":"WorldPulse","subject":"⚠ WorldPulse Worker デプロイ失敗","summary":"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}","url":"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"}'
         env:
-          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+          OBS_WEBHOOK_SECRET: ${{ secrets.OBS_WEBHOOK_SECRET }}
 
   deploy-frontend:
     runs-on: ubuntu-latest
@@ -60,8 +69,13 @@ jobs:
       - name: Notify obs-notify on failure
         if: failure()
         run: |
-          curl -s -X POST "$N8N_WEBHOOK_URL/obs-notify" \
+          if [ -z "$OBS_WEBHOOK_SECRET" ]; then
+            echo "::warning::OBS_WEBHOOK_SECRET が未設定のため obs-notify に送りません"
+            exit 0
+          fi
+          curl -sS --fail-with-body --max-time 30 -X POST "$OBS_NOTIFY_ENDPOINT" \
             -H "Content-Type: application/json" \
+            -H "X-Webhook-Secret: $OBS_WEBHOOK_SECRET" \
             -d '{"severity":"warning","service":"github-actions","repo":"WorldPulse","subject":"⚠ WorldPulse Frontend デプロイ失敗","summary":"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}","url":"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"}'
         env:
-          N8N_WEBHOOK_URL: ${{ secrets.N8N_WEBHOOK_URL }}
+          OBS_WEBHOOK_SECRET: ${{ secrets.OBS_WEBHOOK_SECRET }}
