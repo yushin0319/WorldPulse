@@ -13,7 +13,7 @@
 - Worker: Hono on Cloudflare Workers + Drizzle ORM + toucan-js（Sentry）
 - DB: Cloudflare D1（`daily_news` / `news_articles`）
 - AI: Gemini 2.5 Flash（structured JSON output）
-- 観測: Sentry（toucan-js）/ observability-tail (tail_consumers) → n8n obs-notify / Workers Observability
+- 観測: Sentry（toucan-js）/ observability-tail Worker（`tail_consumers` でエラーログを拾い、cron の異常は Service binding `OBS` で `POST /obs-notify` に送る。どちらも Notion 観測性 DB に記録される）/ Workers Observability
 - パッケージマネージャ: Bun（ルート / `worker/` / `frontend/` にそれぞれ `bun.lock`。ルートは Biome・Husky・lint-staged のみ）。テストは vitest（worker は `@cloudflare/vitest-plugin`）
 
 ## 構成
@@ -23,7 +23,7 @@
   - `src/routes/news.ts` — `/api/news/*` ハンドラ
   - `src/services/{rss,gemini,news}.ts` — RSS 取得 / Gemini 選定 / D1 アクセス
   - `src/db/schema.ts` — Drizzle スキーマ
-  - `src/lib/{sentry,d1-wrapper}.ts` — Sentry 配線 / D1 ラッパー
+  - `src/lib/{sentry,d1-wrapper,obs-notify}.ts` — Sentry 配線 / D1 ラッパー / 観測性通知（observability-tail の `/obs-notify` へ送る）
 - `shared/api.ts`, `shared/types.ts` — フロント↔worker 型共有
 - `database/` — D1 スキーマ・seed スクリプト
 
@@ -43,7 +43,7 @@
 
 ### Sentry への例外集約
 
-`app.onError` で HTTP 経路の未捕捉例外をまとめて `captureException` する（`worker/src/index.ts:63`）。`/api/trigger` と `/api/_sentry-test` は個別の try/catch も持っており、Sentry 送信自体が失敗してもレスポンスには影響させない。Gemini 呼び出しは失敗時に `RETRY_BACKOFF_MS` の待機を挟んでからリトライする。
+`app.onError` で HTTP 経路の未捕捉例外をまとめて `captureException` する（`worker/src/index.ts:64`）。`/api/trigger` と `/api/_sentry-test` は個別の try/catch も持っており、Sentry 送信自体が失敗してもレスポンスには影響させない。Gemini 呼び出しは失敗時に `RETRY_BACKOFF_MS` の待機を挟んでからリトライする。
 
 ## 開発
 
@@ -63,7 +63,8 @@ Worker の CORS は `worldpulse.pages.dev` のみ許可なので、ローカル�
 |---|---|---|
 | `GEMINI_API_KEY` | Worker secret | 記事の選定・翻訳 |
 | `TRIGGER_SECRET` | Worker secret | `/api/trigger` / `/api/_sentry-test` の認証 |
-| `OBS_NOTIFY_URL` | Worker secret（任意） | cron 失敗時の obs-notify 通知先 |
+| `OBS` | `worker/wrangler.toml` の `[[services]]`（Service binding） | cron の異常（RSS 0 件 / Gemini 選定 0 件 / 例外）を observability-tail Worker の `POST /obs-notify` に送る。同じアカウントの Worker 同士は workers.dev の URL に fetch できない（error 1042）ので binding で呼ぶ |
+| `OBS_WEBHOOK_SECRET` | Worker secret（任意）と GitHub secret | `/obs-notify` の `X-Webhook-Secret`。observability-tail の `WEBHOOK_SECRET` と同じ値。未設定なら通知を送らない（Worker の cron・デプロイ失敗の通知とも） |
 | `SENTRY_DSN` | Worker secret（任意） | Sentry 送信先（`SENTRY_RELEASE` は deploy 時に git SHA を `--var` で渡す） |
 | `CORS_ORIGIN` | `worker/wrangler.toml` の `[vars]` | CORS 許可オリジン |
 | `VITE_API_BASE_URL` | Frontend ビルド時（GitHub secret） | Worker の URL |
@@ -79,7 +80,7 @@ bunx @biomejs/biome check .
 
 ## デプロイ
 
-main への push で `test.yml` が成功すると、`.github/workflows/deploy.yml` が Worker と Frontend を並列でデプロイする（2 ジョブに依存関係は無い）。失敗時は obs-notify に warning で通知。手動なら:
+main への push で `test.yml` が成功すると、`.github/workflows/deploy.yml` が Worker と Frontend を並列でデプロイする（2 ジョブに依存関係は無い）。失敗時は observability-tail の `https://observability-tail.y-fudo.workers.dev/obs-notify` に warning で通知する（GitHub Actions は Worker ではないので公開 URL に `curl` で送る。合言葉は GitHub secret `OBS_WEBHOOK_SECRET`）。手動なら:
 
 ```bash
 cd worker && bunx wrangler deploy
