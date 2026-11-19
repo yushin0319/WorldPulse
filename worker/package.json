@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "drizzle-orm": "^0.45.4",
-    "fast-xml-parser": "^5.11.2",
+    "fast-xml-parser": "^5.12.1",
     "hono": "^4.13.18",
     "toucan-js": "^4.1.1"
   },
