@@ -89,6 +89,7 @@ app.post("/api/trigger", async (c) => {
       articles,
       c.env.GEMINI_API_KEY,
       previousArticles,
+      c.env.GEMINI_RELAY,
     );
     if (selected.length === 0) {
       return c.json(
@@ -159,6 +160,7 @@ export default {
             articles,
             env.GEMINI_API_KEY,
             previousArticles,
+            env.GEMINI_RELAY,
           );
           if (selected.length === 0) {
             const msg = `WorldPulse Cron: Gemini選定0件（リトライ含む）。RSS ${articles.length}件取得済み`;

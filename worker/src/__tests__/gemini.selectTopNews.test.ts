@@ -2,6 +2,99 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { selectTopNews } from "../services/gemini";
 
+const VALID_GEMINI_RESPONSE = JSON.stringify({
+  candidates: [
+    {
+      content: {
+        parts: [
+          {
+            text: JSON.stringify([
+              {
+                index: 0,
+                country_code: "US",
+                lat: 40,
+                lng: -74,
+                title_ja: "テスト",
+                summary_ja: "テスト要約",
+                category: "general",
+              },
+            ]),
+          },
+        ],
+      },
+    },
+  ],
+});
+
+const ONE_ARTICLE = [
+  {
+    title: "Test",
+    snippet: "test",
+    url: "https://example.com",
+    source: "Test",
+    publishedAt: null,
+  },
+];
+
+describe("selectTopNews (中継 gemini-relay 経由)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("中継を渡すと中継の fetch で Gemini を呼び、グローバル fetch は使わない", async () => {
+    const globalFetch = vi.fn();
+    vi.stubGlobal("fetch", globalFetch);
+    const relayFetch = vi.fn(
+      async (_url: string, _init: RequestInit) =>
+        new Response(VALID_GEMINI_RESPONSE, { status: 200 }),
+    );
+
+    const result = await selectTopNews(
+      ONE_ARTICLE,
+      "my-secret-key",
+      undefined,
+      {
+        fetch: relayFetch,
+      } as unknown as Fetcher,
+    );
+
+    expect(result.length).toBe(1);
+    expect(globalFetch).not.toHaveBeenCalled();
+    expect(relayFetch).toHaveBeenCalledTimes(1);
+    const [url, init] = relayFetch.mock.calls[0];
+    // 中継はパスだけを見て generativelanguage.googleapis.com に送る
+    expect(new URL(url).pathname).toBe(
+      "/v1beta/models/gemini-2.5-flash:generateContent",
+    );
+    expect(url).not.toContain("my-secret-key");
+    expect((init.headers as Record<string, string>)["x-goog-api-key"]).toBe(
+      "my-secret-key",
+    );
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("中継経由で 1 回目が失敗したら、10 秒待って中継で送り直す", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("fetch", vi.fn());
+    const relayFetch = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("{}", { status: 503 }))
+      .mockResolvedValueOnce(
+        new Response(VALID_GEMINI_RESPONSE, { status: 200 }),
+      );
+
+    const promise = selectTopNews(ONE_ARTICLE, "test-key", undefined, {
+      fetch: relayFetch,
+    } as unknown as Fetcher);
+    await vi.advanceTimersByTimeAsync(10_000);
+    const result = await promise;
+
+    expect(result.length).toBe(1);
+    expect(relayFetch).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("selectTopNews", () => {
   afterEach(() => {
     vi.useRealTimers();

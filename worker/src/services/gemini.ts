@@ -156,16 +156,20 @@ export function parseGeminiResponse(
 }
 
 // Gemini API 単発呼出（タイムアウト付き）
+// relay (gemini-relay への service binding) があればそこ経由で送る。cron が香港などで動いた日も
+// 米国から Gemini を呼べる。中継は URL のパスだけを見るので、URL は直接呼ぶときと同じでよい
 async function callGeminiApi(
   prompt: string,
   apiKey: string,
   timeoutMs: number,
+  relay?: Fetcher,
 ): Promise<string> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const send = relay ? relay.fetch.bind(relay) : fetch;
 
   try {
-    const response = await fetch(GEMINI_API_URL, {
+    const response = await send(GEMINI_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -204,13 +208,14 @@ export async function selectTopNews(
   articles: RssArticle[],
   apiKey: string,
   previousArticles?: PreviousArticle[],
+  relay?: Fetcher,
 ): Promise<GeminiSelectedArticle[]> {
   const limited = articles.slice(0, MAX_ARTICLES_FOR_PROMPT);
   const prompt = buildPrompt(limited, previousArticles);
 
   // 1回目: 180秒タイムアウト
   try {
-    const text = await callGeminiApi(prompt, apiKey, 180_000);
+    const text = await callGeminiApi(prompt, apiKey, 180_000, relay);
     const results = parseGeminiResponse(text, limited.length);
     if (results.length > 0) return results;
     console.error("Gemini API 1st attempt: empty results", {
@@ -230,7 +235,7 @@ export async function selectTopNews(
 
   // 2回目（リトライ）: 180秒タイムアウト
   try {
-    const text = await callGeminiApi(prompt, apiKey, 180_000);
+    const text = await callGeminiApi(prompt, apiKey, 180_000, relay);
     return parseGeminiResponse(text, limited.length);
   } catch (e) {
     console.error(
