@@ -1,4 +1,5 @@
 import type {
+  Env,
   GeminiSelectedArticle,
   PreviousArticle,
   RssArticle,
@@ -8,8 +9,9 @@ import { VALID_CATEGORIES } from "../types";
 // カテゴリの O(1) 判定用 Set（モジュールレベルで一度だけ生成）
 const VALID_CATEGORIES_SET = new Set<string>(VALID_CATEGORIES);
 
-const GEMINI_API_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+// gemini-relay への Service binding 経由で送るのでホスト名は使われず、パスだけが届く
+const GEMINI_RELAY_URL =
+  "https://gemini-relay/v1beta/models/gemini-2.5-flash:generateContent";
 
 // Geminiに送る記事数の上限（トークン効率のため）
 const MAX_ARTICLES_FOR_PROMPT = 100;
@@ -155,25 +157,23 @@ export function parseGeminiResponse(
   }
 }
 
+export type GeminiEnv = Pick<Env, "GEMINI_API_KEY" | "GEMINI_RELAY">;
+
 // Gemini API 単発呼出（タイムアウト付き）
-// relay (gemini-relay への service binding) があればそこ経由で送る。cron が香港などで動いた日も
-// 米国から Gemini を呼べる。中継は URL のパスだけを見るので、URL は直接呼ぶときと同じでよい
 async function callGeminiApi(
   prompt: string,
-  apiKey: string,
+  env: GeminiEnv,
   timeoutMs: number,
-  relay?: Fetcher,
 ): Promise<string> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  const send = relay ? relay.fetch.bind(relay) : fetch;
 
   try {
-    const response = await send(GEMINI_API_URL, {
+    const response = await env.GEMINI_RELAY.fetch(GEMINI_RELAY_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
+        "x-goog-api-key": env.GEMINI_API_KEY,
       },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
@@ -184,6 +184,14 @@ async function callGeminiApi(
       }),
       signal: controller.signal,
     });
+    // 中継が米国に回されて動いたか (remote-<拠点>) を毎回残す。呼ぶのは 1 日 1〜2 回
+    console.log(
+      JSON.stringify({
+        type: "gemini_relay",
+        status: response.status,
+        placement: response.headers.get("cf-placement"),
+      }),
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -206,16 +214,15 @@ async function callGeminiApi(
 // Gemini API呼出（180秒タイムアウト + バックオフ付き1回リトライ）
 export async function selectTopNews(
   articles: RssArticle[],
-  apiKey: string,
+  env: GeminiEnv,
   previousArticles?: PreviousArticle[],
-  relay?: Fetcher,
 ): Promise<GeminiSelectedArticle[]> {
   const limited = articles.slice(0, MAX_ARTICLES_FOR_PROMPT);
   const prompt = buildPrompt(limited, previousArticles);
 
   // 1回目: 180秒タイムアウト
   try {
-    const text = await callGeminiApi(prompt, apiKey, 180_000, relay);
+    const text = await callGeminiApi(prompt, env, 180_000);
     const results = parseGeminiResponse(text, limited.length);
     if (results.length > 0) return results;
     console.error("Gemini API 1st attempt: empty results", {
@@ -235,7 +242,7 @@ export async function selectTopNews(
 
   // 2回目（リトライ）: 180秒タイムアウト
   try {
-    const text = await callGeminiApi(prompt, apiKey, 180_000, relay);
+    const text = await callGeminiApi(prompt, env, 180_000);
     return parseGeminiResponse(text, limited.length);
   } catch (e) {
     console.error(

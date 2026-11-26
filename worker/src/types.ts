@@ -23,8 +23,8 @@ export interface Env {
   OBS?: Fetcher;
   /** observability-tail の /obs-notify に付ける X-Webhook-Secret (observability-tail の WEBHOOK_SECRET と同じ値) */
   OBS_WEBHOOK_SECRET?: string;
-  /** gemini-relay Worker への Service binding (Gemini を米国から呼ぶ中継。fetch() で呼ぶこと) */
-  GEMINI_RELAY?: Fetcher;
+  /** gemini-relay Worker への Service binding。Gemini はここ経由でだけ呼ぶ */
+  GEMINI_RELAY: Fetcher;
   // L15: Sentry エラートラッキング（DSN は wrangler secret、release は CI で git SHA）
   SENTRY_DSN?: string;
   SENTRY_RELEASE?: string;
