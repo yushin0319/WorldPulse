@@ -132,6 +132,7 @@ describe("scheduled から obs-notify への配線", () => {
     const testEnv: Env = {
       DB: env.DB,
       GEMINI_API_KEY: "",
+      GEMINI_RELAY: fakeBinding(okResponse).binding,
       CORS_ORIGIN: "*",
       OBS: binding,
       OBS_WEBHOOK_SECRET: SECRET,

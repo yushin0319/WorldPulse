@@ -85,11 +85,7 @@ app.post("/api/trigger", async (c) => {
       return c.json({ error: "No articles fetched" }, 500);
     }
     const previousArticles = await getRecentArticles(c.env.DB, 3);
-    const selected = await selectTopNews(
-      articles,
-      c.env.GEMINI_API_KEY,
-      previousArticles,
-    );
+    const selected = await selectTopNews(articles, c.env, previousArticles);
     if (selected.length === 0) {
       return c.json(
         { error: "Gemini returned no results", totalFetched: articles.length },
@@ -155,11 +151,7 @@ export default {
           }
 
           const previousArticles = await getRecentArticles(env.DB, 3);
-          const selected = await selectTopNews(
-            articles,
-            env.GEMINI_API_KEY,
-            previousArticles,
-          );
+          const selected = await selectTopNews(articles, env, previousArticles);
           if (selected.length === 0) {
             const msg = `WorldPulse Cron: Gemini選定0件（リトライ含む）。RSS ${articles.length}件取得済み`;
             console.error(msg);
